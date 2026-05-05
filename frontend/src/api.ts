@@ -101,17 +101,13 @@ export const api = {
   syncPlaylists: (onProgress?: (p: SyncProgress) => void): Promise<{ playlistsProcessed: number; songsUpdated: number }> =>
     sync(onProgress),
 
-  removeFromShazam: async (spotifyUri: string): Promise<void> => {
-    const config = getConfig()
-    if (!config.shazamPlaylistId) throw new Error('Shazam playlist not configured')
-    await spotifyApi.removeTrackFromPlaylist(spotifyUri, config.shazamPlaylistId)
+  removeFromLivePlaylist: async (spotifyUri: string, playlistId: string): Promise<void> => {
+    await spotifyApi.removeTrackFromPlaylist(spotifyUri, playlistId)
   },
 
-  getShazamSongs: async (onBatch: (songs: SongResponse[]) => void): Promise<void> => {
-    const config = getConfig()
-    if (!config.shazamPlaylistId) return
+  getLivePlaylistSongs: async (playlistId: string, onBatch: (songs: SongResponse[]) => void): Promise<void> => {
     const buildSongs = await createTrackSongBuilder()
-    await spotifyApi.streamPlaylistTracks(config.shazamPlaylistId, (tracks) => onBatch(buildSongs(tracks)))
+    await spotifyApi.streamPlaylistTracks(playlistId, (tracks) => onBatch(buildSongs(tracks)))
   },
 
   ensureSongExists: async (song: SongResponse): Promise<void> => {

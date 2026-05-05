@@ -8,10 +8,10 @@ interface Props {
   onTagToggle: (tagId: number, isCurrentlyAssigned: boolean) => Promise<void>
   onCategoriesReordered: (categories: CategoryResponse[]) => void
   onIgnore: (path: string) => Promise<void>
-  onRemoveFromShazam?: (path: string) => Promise<void>
+  onRemoveFromPlaylist?: (uri: string) => Promise<void>
 }
 
-export default function TagPanel({ song, categories, onTagToggle, onCategoriesReordered, onIgnore, onRemoveFromShazam }: Props) {
+export default function TagPanel({ song, categories, onTagToggle, onCategoriesReordered, onIgnore, onRemoveFromPlaylist }: Props) {
   const [ordered, setOrdered] = useState(categories)
   const [tagSearch, setTagSearch] = useState('')
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([])
@@ -116,13 +116,13 @@ export default function TagPanel({ song, categories, onTagToggle, onCategoriesRe
             >
               Add to ignore list
             </button>
-            {onRemoveFromShazam && (
+            {onRemoveFromPlaylist && (
               <button
-                onClick={() => onRemoveFromShazam(song.spotifyUri)}
-                className="text-xs px-2 py-1 rounded border border-neutral-600 text-neutral-400 hover:border-orange-600 hover:text-orange-400 transition-colors"
-                title="Remove from Shazam playlist"
+                onClick={() => onRemoveFromPlaylist(song.spotifyUri)}
+                className="text-xs px-2 py-1 rounded border border-neutral-600 text-neutral-400 hover:border-blue-500 hover:text-blue-400 transition-colors"
+                title="Remove from live edit playlist"
               >
-                Remove from Shazam
+                Remove from playlist
               </button>
             )}
           </div>

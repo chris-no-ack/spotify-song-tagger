@@ -89,11 +89,14 @@ export interface SpotifyPlaylist {
 
 export async function fetchAllPlaylists(): Promise<SpotifyPlaylist[]> {
   const result: SpotifyPlaylist[] = []
+  const seen = new Set<string>()
   let url: string | null = `${API_BASE}/me/playlists?limit=50`
   while (url) {
     const response = await spotifyFetch(url)
     const page = await response.json()
     for (const item of page.items ?? []) {
+      if (seen.has(item.id)) continue
+      seen.add(item.id)
       result.push({
         id: item.id,
         name: item.name,

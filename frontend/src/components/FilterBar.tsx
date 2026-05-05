@@ -15,12 +15,13 @@ interface Props {
   onLogout: () => void
   onSyncDone: () => void
   onOpenSettings: () => void
-  shazamMode: boolean
-  onShazamModeChange: (v: boolean) => void
-  shazamConfigured: boolean
+  onOpenExport: () => void
+  liveEditPlaylistName: string | null
+  onOpenLiveEditDialog: () => void
+  onExitLiveEdit: () => void
 }
 
-export default function FilterBar({ categories, missingFilter, onMissingFilterChange, minMissing, onMinMissingChange, sort, onSortChange, spotifyStatus, onLogout, onSyncDone, onOpenSettings, shazamMode, onShazamModeChange, shazamConfigured }: Props) {
+export default function FilterBar({ categories, missingFilter, onMissingFilterChange, minMissing, onMinMissingChange, sort, onSortChange, spotifyStatus, onLogout, onSyncDone, onOpenSettings, onOpenExport, liveEditPlaylistName, onOpenLiveEditDialog, onExitLiveEdit }: Props) {
   const [progress, setProgress] = useState<SyncProgress | null>(null)
 
   const handleSync = async () => {
@@ -90,16 +91,21 @@ export default function FilterBar({ categories, missingFilter, onMissingFilterCh
         </select>
 
         <div className="ml-auto flex items-center gap-2">
-          {shazamConfigured && (
-            <button
-              onClick={() => onShazamModeChange(!shazamMode)}
-              className={`text-xs px-2 py-1 rounded transition-colors ${shazamMode ? 'bg-orange-600 hover:bg-orange-500 text-white' : 'bg-neutral-600 hover:bg-neutral-500 text-neutral-200'}`}
-              title="Toggle Shazam playlist mode"
-            >
-              ⚡ Shazam
-            </button>
-          )}
           <button
+            onClick={liveEditPlaylistName ? onExitLiveEdit : onOpenLiveEditDialog}
+            className={`text-xs px-2 py-1 rounded transition-colors ${liveEditPlaylistName ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-neutral-600 hover:bg-neutral-500 text-neutral-200'}`}
+            title={liveEditPlaylistName ? `Exit live edit: ${liveEditPlaylistName}` : 'Live edit a playlist'}
+          >
+            ⚡ {liveEditPlaylistName ?? 'Live Edit Playlist'}
+          </button>
+          <button
+              onClick={onOpenExport}
+              className="text-xs bg-neutral-600 hover:bg-neutral-500 text-neutral-200 px-2 py-1 rounded transition-colors"
+              title="Export playlists"
+            >
+              ↓ Export
+            </button>
+            <button
             onClick={onOpenSettings}
             className="text-xs bg-neutral-600 hover:bg-neutral-500 text-neutral-200 px-2 py-1 rounded transition-colors"
             title="Settings"
@@ -108,7 +114,7 @@ export default function FilterBar({ categories, missingFilter, onMissingFilterCh
           </button>
           <button
             onClick={handleSync}
-            disabled={syncing || shazamMode}
+            disabled={syncing || !!liveEditPlaylistName}
             className="text-xs bg-neutral-600 hover:bg-neutral-500 disabled:opacity-50 text-neutral-200 px-2 py-1 rounded transition-colors"
             title="Sync tags from Spotify playlists"
           >

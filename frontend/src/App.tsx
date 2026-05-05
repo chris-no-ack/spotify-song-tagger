@@ -6,6 +6,9 @@ import SongList from './components/SongList'
 import TagPanel from './components/TagPanel'
 import PlayerBar from './components/PlayerBar'
 import SettingsScreen from './components/SettingsScreen'
+import PlaylistExportDialog from './components/PlaylistExportDialog'
+import LiveEditPlaylistDialog from './components/LiveEditPlaylistDialog'
+import type { SpotifyPlaylist } from './spotifyApi'
 import { handleCallback } from './spotifyAuth'
 import { getConfig } from './settingsStore'
 
@@ -20,9 +23,13 @@ export default function App() {
   const [spotifyStatus, setSpotifyStatus] = useState<SpotifyStatus>({ authenticated: false, activeDevice: '' })
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
-  const [shazamMode, setShazamMode] = useState(false)
-  const [shazamSongs, setShazamSongs] = useState<SongResponse[]>([])
-  const [shazamLoading, setShazamLoading] = useState(false)
+  const [showExport, setShowExport] = useState(false)
+  const [showLiveEditDialog, setShowLiveEditDialog] = useState(false)
+  const [liveEditMode, setLiveEditMode] = useState(false)
+  const [liveEditSongs, setLiveEditSongs] = useState<SongResponse[]>([])
+  const [liveEditLoading, setLiveEditLoading] = useState(false)
+  const [liveEditPlaylistId, setLiveEditPlaylistId] = useState<string | null>(null)
+  const [liveEditPlaylistName, setLiveEditPlaylistName] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const showError = useCallback((msg: string) => {
@@ -88,33 +95,42 @@ export default function App() {
     return () => clearInterval(id)
   }, [])
 
-  const loadShazamSongs = useCallback(async () => {
-    setShazamLoading(true)
-    setShazamSongs([])
+  const loadLivePlaylistSongs = useCallback(async (playlistId: string) => {
+    setLiveEditLoading(true)
+    setLiveEditSongs([])
     try {
-      await api.getShazamSongs((batch) => {
-        setShazamSongs(prev => {
+      await api.getLivePlaylistSongs(playlistId, (batch) => {
+        setLiveEditSongs(prev => {
           const seen = new Set(prev.map(s => s.spotifyUri))
           return [...prev, ...batch.filter(s => !seen.has(s.spotifyUri))]
         })
       })
     } finally {
-      setShazamLoading(false)
+      setLiveEditLoading(false)
     }
   }, [])
 
-  const handleShazamModeChange = useCallback(async (enabled: boolean) => {
-    setShazamMode(enabled)
+  const handleLiveEditSelected = useCallback(async (playlist: SpotifyPlaylist) => {
+    setShowLiveEditDialog(false)
+    setLiveEditMode(true)
+    setLiveEditPlaylistId(playlist.id)
+    setLiveEditPlaylistName(playlist.name)
     setSelectedSong(null)
     await api.pause().catch(() => {})
-    if (enabled) {
-      await loadShazamSongs()
-    }
-  }, [loadShazamSongs])
+    await loadLivePlaylistSongs(playlist.id)
+  }, [loadLivePlaylistSongs])
+
+  const handleExitLiveEdit = useCallback(() => {
+    setLiveEditMode(false)
+    setLiveEditSongs([])
+    setLiveEditPlaylistId(null)
+    setLiveEditPlaylistName(null)
+    setSelectedSong(null)
+  }, [])
 
   const allCategoryNames = categories.map(c => c.name)
 
-  const activeSongs = shazamMode ? shazamSongs : songs
+  const activeSongs = liveEditMode ? liveEditSongs : songs
 
   const filteredSongs = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -142,29 +158,30 @@ export default function App() {
   const handleIgnore = useCallback(async (path: string) => {
     const next = nextSong
     await api.ignoreSong(path)
-    if (shazamMode) {
-      await loadShazamSongs()
+    if (liveEditMode && liveEditPlaylistId) {
+      await loadLivePlaylistSongs(liveEditPlaylistId)
     } else {
       await loadSongs()
     }
     setSelectedSong(prev => (prev?.spotifyUri === path ? next : prev))
-  }, [loadSongs, loadShazamSongs, shazamMode, nextSong])
+  }, [loadSongs, loadLivePlaylistSongs, liveEditMode, liveEditPlaylistId, nextSong])
 
-  const handleRemoveFromShazam = useCallback(async (path: string) => {
+  const handleRemoveFromLivePlaylist = useCallback(async (uri: string) => {
+    if (!liveEditPlaylistId) return
     const next = nextSong
     try {
-      await api.removeFromShazam(path)
-      setShazamSongs(prev => prev.filter(s => s.spotifyUri !== path))
-      setSelectedSong(prev => (prev?.spotifyUri === path ? next : prev))
+      await api.removeFromLivePlaylist(uri, liveEditPlaylistId)
+      setLiveEditSongs(prev => prev.filter(s => s.spotifyUri !== uri))
+      setSelectedSong(prev => (prev?.spotifyUri === uri ? next : prev))
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Failed to remove from Shazam')
+      showError(e instanceof Error ? e.message : 'Failed to remove from playlist')
     }
-  }, [nextSong, showError])
+  }, [liveEditPlaylistId, nextSong, showError])
 
   const handleTagToggle = async (tagId: number, isCurrentlyAssigned: boolean) => {
     if (!selectedSong) return
     const path = selectedSong.spotifyUri
-    if (shazamMode) {
+    if (liveEditMode) {
       await api.ensureSongExists(selectedSong)
     }
     if (isCurrentlyAssigned) {
@@ -172,10 +189,10 @@ export default function App() {
     } else {
       await api.assignTag(path, tagId)
     }
-    if (shazamMode) {
+    if (liveEditMode) {
       const fresh = await api.getSong(path)
       setSelectedSong(fresh)
-      setShazamSongs(prev => prev.map(s => s.spotifyUri === path ? fresh : s))
+      setLiveEditSongs(prev => prev.map(s => s.spotifyUri === path ? fresh : s))
     } else {
       await Promise.all([loadSongs(), refreshSelectedSong(path)])
     }
@@ -199,6 +216,15 @@ export default function App() {
           setSpotifyStatus(status)
         }} />
       )}
+      {showExport && (
+        <PlaylistExportDialog onClose={() => setShowExport(false)} />
+      )}
+      {showLiveEditDialog && (
+        <LiveEditPlaylistDialog
+          onSelect={handleLiveEditSelected}
+          onClose={() => setShowLiveEditDialog(false)}
+        />
+      )}
 
       <FilterBar
         categories={allCategoryNames}
@@ -216,17 +242,18 @@ export default function App() {
           setCategories(cats)
         }}
         onOpenSettings={() => setShowSettings(true)}
-        shazamMode={shazamMode}
-        onShazamModeChange={handleShazamModeChange}
-        shazamConfigured={!!getConfig().shazamPlaylistId}
+        onOpenExport={() => setShowExport(true)}
+        liveEditPlaylistName={liveEditPlaylistName}
+        onOpenLiveEditDialog={() => setShowLiveEditDialog(true)}
+        onExitLiveEdit={handleExitLiveEdit}
       />
-      {shazamLoading && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-orange-900/40 border-b border-orange-800 text-xs text-orange-300">
+      {liveEditLoading && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-900/40 border-b border-blue-800 text-xs text-blue-300">
           <svg className="animate-spin h-3.5 w-3.5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
-          Loading Shazam playlist…
+          Loading {liveEditPlaylistName ?? 'playlist'}…
         </div>
       )}
 
@@ -258,7 +285,7 @@ export default function App() {
               onTagToggle={handleTagToggle}
               onCategoriesReordered={setCategories}
               onIgnore={handleIgnore}
-              onRemoveFromShazam={shazamMode ? handleRemoveFromShazam : undefined}
+              onRemoveFromPlaylist={liveEditMode ? handleRemoveFromLivePlaylist : undefined}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-neutral-500">

@@ -79,7 +79,7 @@ npm run lint     # run ESLint
 npm run build    # production build → dist/
 ```
 
-A pre-commit hook runs `npm run lint` automatically.
+A pre-commit hook runs `npm run lint` and `npm test` automatically.
 
 ## Data
 
@@ -89,3 +89,34 @@ All data lives in the browser:
 - **localStorage** — settings and Spotify tokens
 
 Use **Export JSON** in Settings to back up everything, and **Import JSON** to restore. Importing replaces all local data after confirmation.
+
+## Playlist backup & restore
+
+The **Playlist backup** control in Settings → Data lets you download a full snapshot of any Spotify playlist as a JSON file. This is useful if you want a local safety copy in case an online playlist gets accidentally modified or deleted.
+
+### Exporting
+
+1. Open **Settings** → scroll to **Data** → click **Load playlists**
+2. Select the playlist you want to back up from the dropdown
+3. Click **Export playlist** — a file named `playlist-backup-<name>-<date>.json` is downloaded
+
+The file contains:
+- `playlist` — id, name, ownerId, exportedAt timestamp
+- `tracks` — array of `{ uri, title, artist, addedAt }` for every track
+- `restoreHint` — pre-filled Spotify API call you can paste into curl (see below)
+
+### Restoring with curl
+
+1. **Create a new (empty) playlist** in Spotify, or find the ID of an existing target playlist.
+2. **Get an access token** — log in via the app and copy the token from `localStorage` key `spotify_access_token`, or obtain one through the [Spotify API console](https://developer.spotify.com/console/).
+3. **Add the tracks** — the backup file's `restoreHint.body.uris` contains the full list. Spotify accepts at most **100 URIs per request**, so split into batches if needed.
+
+```bash
+# Single batch (≤ 100 tracks)
+curl -X POST "https://api.spotify.com/v1/playlists/{NEW_PLAYLIST_ID}/tracks" \
+  -H "Authorization: Bearer {ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"uris": ["spotify:track:abc123", "spotify:track:def456", ...]}'
+```
+
+For playlists with more than 100 tracks, repeat the request with successive slices of the `uris` array until all tracks are added.
