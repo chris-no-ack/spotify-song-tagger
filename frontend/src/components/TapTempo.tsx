@@ -47,7 +47,7 @@ export default function TapTempo() {
     setActive(true)
     setFlash(true)
     if (flashTimer.current) clearTimeout(flashTimer.current)
-    flashTimer.current = setTimeout(() => setFlash(false), 120)
+    flashTimer.current = setTimeout(() => setFlash(false), 60)
     scheduleReset()
   }, [scheduleReset])
 
