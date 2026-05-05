@@ -14,7 +14,10 @@ export default function IgnoreReasonDialog({ categories, onConfirm, onCancel }: 
   const ignoreTags = categories.flatMap(c =>
     c.tags
       .filter(t => t.value.toLowerCase().startsWith('ignore'))
-      .map(t => ({ id: t.id, categoryName: c.name, playlistName: t.playlistName }))
+      .map(t => {
+        const reason = t.value.replace(/^ignore\s*/i, '').trim() || 'Default'
+        return { id: t.id, reason, playlistName: t.playlistName }
+      })
   )
 
   function toggle(id: number) {
@@ -49,7 +52,7 @@ export default function IgnoreReasonDialog({ categories, onConfirm, onCancel }: 
                   onChange={() => toggle(tag.id)}
                   className="accent-red-500"
                 />
-                <span className="text-sm text-neutral-200">{tag.categoryName}</span>
+                <span className="text-sm text-neutral-200">{tag.reason}</span>
                 <span className="text-xs text-neutral-500 ml-auto truncate">{tag.playlistName}</span>
               </label>
             ))
