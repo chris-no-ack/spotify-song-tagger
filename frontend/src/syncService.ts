@@ -65,7 +65,7 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
   // Collect tracks per playlist (same algorithm as Java)
   const playlistsByUri = new Map<string, string[]>()  // uri → playlist names
   const playlistIdByName = new Map<string, string>()
-  const trackMetaByUri = new Map<string, { title: string; artist: string; coverUrl: string | null; durationMs: number }>()
+  const trackMetaByUri = new Map<string, { title: string; artist: string; coverUrl: string | null; durationMs: number; releaseDate: string | null }>()
   const earliestAddedAt = new Map<string, string>()
 
   for (const [i, playlist] of filtered.entries()) {
@@ -79,6 +79,7 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
         trackMetaByUri.set(track.uri, {
           title: track.title, artist: track.artist,
           coverUrl: track.coverUrl, durationMs: track.durationMs,
+          releaseDate: track.releaseDate,
         })
       }
       if (track.addedAt) {
@@ -103,13 +104,14 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
       const meta = trackMetaByUri.get(uri)!
       const song: Song = existingSongs.get(uri) ?? {
         spotifyUri: uri, title: meta.title, artist: meta.artist,
-        coverUrl: null, durationMs: null, discoveredDate: null, ignored: false,
+        coverUrl: null, durationMs: null, discoveredDate: null, releaseDate: null, ignored: false,
       }
 
       song.title = meta.title
       song.artist = meta.artist
       if (meta.coverUrl) song.coverUrl = meta.coverUrl
       if (meta.durationMs) song.durationMs = meta.durationMs
+      if (meta.releaseDate) song.releaseDate = meta.releaseDate
 
       const discovered = earliestAddedAt.get(uri)
       if (discovered && (!song.discoveredDate || discovered < song.discoveredDate)) {

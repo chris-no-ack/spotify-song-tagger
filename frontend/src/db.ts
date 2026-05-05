@@ -11,6 +11,7 @@ export interface Song {
   coverUrl: string | null
   durationMs: number | null
   discoveredDate: string | null  // "YYYY-MM-DD"
+  releaseDate: string | null     // "YYYY", "YYYY-MM", or "YYYY-MM-DD"
   ignored: boolean
 }
 
@@ -98,6 +99,7 @@ function buildSongResponse(
     coverUrl: song.coverUrl,
     durationMs: song.durationMs,
     discoveredDate: song.discoveredDate,
+    releaseDate: song.releaseDate ?? null,
     missingCategories,
     tags,
   }
@@ -133,20 +135,20 @@ export async function querySong(spotifyUri: string): Promise<SongResponse | null
 }
 
 export async function createTrackSongBuilder(): Promise<
-  (tracks: Array<{ uri: string; title: string; artist: string; coverUrl: string | null; durationMs: number; addedAt: string | null }>) => SongResponse[]
+  (tracks: Array<{ uri: string; title: string; artist: string; coverUrl: string | null; durationMs: number; addedAt: string | null; releaseDate: string | null }>) => SongResponse[]
 > {
   const { allCategories, allTags, allSongTags } = await loadJoinData()
   const tagsById = new Map(allTags.filter(t => t.id != null).map(t => [t.id!, t]))
   const categoriesById = new Map(allCategories.filter(c => c.id != null).map(c => [c.id!, c]))
   const allCategoryNames = allCategories.map(c => c.name)
   return (tracks) => tracks.map(track => buildSongResponse(
-    { spotifyUri: track.uri, title: track.title, artist: track.artist, coverUrl: track.coverUrl, durationMs: track.durationMs, discoveredDate: track.addedAt, ignored: false },
+    { spotifyUri: track.uri, title: track.title, artist: track.artist, coverUrl: track.coverUrl, durationMs: track.durationMs, discoveredDate: track.addedAt, releaseDate: track.releaseDate, ignored: false },
     allSongTags, tagsById, categoriesById, allCategoryNames,
   ))
 }
 
 export async function queryTracksAsSongs(
-  tracks: Array<{ uri: string; title: string; artist: string; coverUrl: string | null; durationMs: number; addedAt: string | null }>,
+  tracks: Array<{ uri: string; title: string; artist: string; coverUrl: string | null; durationMs: number; addedAt: string | null; releaseDate: string | null }>,
 ): Promise<SongResponse[]> {
   const { allCategories, allTags, allSongTags } = await loadJoinData()
   const tagsById = new Map(allTags.filter(t => t.id != null).map(t => [t.id!, t]))
@@ -161,6 +163,7 @@ export async function queryTracksAsSongs(
       coverUrl: track.coverUrl,
       durationMs: track.durationMs,
       discoveredDate: track.addedAt,
+      releaseDate: track.releaseDate,
       ignored: false,
     }
     return buildSongResponse(song, allSongTags, tagsById, categoriesById, allCategoryNames)

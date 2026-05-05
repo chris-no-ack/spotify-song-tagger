@@ -21,6 +21,7 @@ const song: SongResponse = {
   coverUrl: null,
   durationMs: 210000,
   discoveredDate: '2024-01-15',
+  releaseDate: null,
   missingCategories: ['Mood'],
   tags: [{ id: 10, categoryName: 'Energy', value: 'High', playlistName: 'Dance High Energy' }],
 }

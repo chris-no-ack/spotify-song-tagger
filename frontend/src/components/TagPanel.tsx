@@ -105,6 +105,9 @@ export default function TagPanel({ song, categories, onTagToggle, onCategoriesRe
           {song.discoveredDate && (
             <p className="text-xs text-neutral-500 mt-1">Discovered: {song.discoveredDate}</p>
           )}
+          {song.releaseDate && (
+            <p className="text-xs text-neutral-500">Released: {song.releaseDate}</p>
+          )}
           {song.missingCategories.length > 0 && (
             <p className="text-xs text-red-400 mt-1">
               Missing: {song.missingCategories.join(', ')}

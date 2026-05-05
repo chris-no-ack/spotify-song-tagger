@@ -155,9 +155,9 @@ export default function App() {
     return idx !== -1 ? (filteredSongs[idx + 1] ?? null) : null
   }, [filteredSongs, selectedSong])
 
-  const handleIgnore = useCallback(async (path: string) => {
+  const handleIgnore = useCallback(async (path: string, tagIds: number[]) => {
     const next = nextSong
-    await api.ignoreSong(path)
+    await api.ignoreSong(path, tagIds)
     if (liveEditMode && liveEditPlaylistId) {
       await loadLivePlaylistSongs(liveEditPlaylistId)
     } else {

@@ -28,6 +28,7 @@ const makeSong = (n: number, opts: { discoveredDate?: string; missingCategories?
   coverUrl: null,
   durationMs: null,
   discoveredDate: opts.discoveredDate ?? null,
+  releaseDate: null,
   missingCategories: opts.missingCategories ?? [],
   tags: [],
 })

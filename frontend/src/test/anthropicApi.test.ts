@@ -9,6 +9,7 @@ const song: SongResponse = {
   coverUrl: null,
   durationMs: 200000,
   discoveredDate: '2024-01-01',
+  releaseDate: null,
   missingCategories: ['Energy', 'Mood'],
   tags: [],
 }

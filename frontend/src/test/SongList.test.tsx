@@ -11,6 +11,7 @@ const makeSong = (n: number, missingCategories: string[] = []): SongResponse => 
   coverUrl: null,
   durationMs: null,
   discoveredDate: null,
+  releaseDate: null,
   missingCategories,
   tags: [],
 })

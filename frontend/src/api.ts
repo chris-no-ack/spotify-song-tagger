@@ -127,6 +127,7 @@ export const api = {
         coverUrl: song.coverUrl,
         durationMs: song.durationMs,
         discoveredDate: song.discoveredDate,
+        releaseDate: song.releaseDate,
         ignored: false,
       })
     }

@@ -22,6 +22,7 @@ function makeTrack(overrides: Partial<SpotifyTrackItemWithPosition>): SpotifyTra
     coverUrl: null,
     durationMs: 180000,
     addedAt: '2024-01-01',
+    releaseDate: null,
     position: 0,
     ...overrides,
   }

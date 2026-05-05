@@ -31,6 +31,7 @@ async function seedSong(overrides: Partial<Song> = {}): Promise<Song> {
     coverUrl: null,
     durationMs: 200000,
     discoveredDate: '2024-01-01',
+    releaseDate: null,
     ignored: false,
     ...overrides,
   }

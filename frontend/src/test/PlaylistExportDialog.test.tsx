@@ -25,8 +25,8 @@ const makePlaylists = (): SpotifyPlaylist[] => [
 ]
 
 const makeTracks = (): SpotifyTrackItem[] => [
-  { uri: 'spotify:track:aaa', title: 'Track A', artist: 'Artist A', coverUrl: null, durationMs: 180000, addedAt: '2024-01-01' },
-  { uri: 'spotify:track:bbb', title: 'Track B', artist: 'Artist B', coverUrl: null, durationMs: 200000, addedAt: '2024-02-01' },
+  { uri: 'spotify:track:aaa', title: 'Track A', artist: 'Artist A', coverUrl: null, durationMs: 180000, addedAt: '2024-01-01', releaseDate: null },
+  { uri: 'spotify:track:bbb', title: 'Track B', artist: 'Artist B', coverUrl: null, durationMs: 200000, addedAt: '2024-02-01', releaseDate: null },
 ]
 
 // ── download capture helpers ─────────────────────────────────────────────────

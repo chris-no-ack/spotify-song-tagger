@@ -12,6 +12,7 @@ export interface SongResponse {
   coverUrl: string | null
   durationMs: number | null
   discoveredDate: string | null
+  releaseDate: string | null
   missingCategories: string[]
   tags: TagResponse[]
 }
