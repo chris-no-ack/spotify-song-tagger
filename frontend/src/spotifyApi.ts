@@ -161,9 +161,39 @@ export async function streamPlaylistTracks(
   }
 }
 
-export async function fetchPlaylistTracksByPlaylistId(playlistId: string): Promise<SpotifyTrackItem[]> {
-  return fetchPlaylistTracks(`${API_BASE}/playlists/${playlistId}/tracks`)
+export interface SpotifyTrackItemWithPosition extends SpotifyTrackItem {
+  position: number
 }
+
+export async function fetchPlaylistTracksWithPositions(playlistId: string): Promise<SpotifyTrackItemWithPosition[]> {
+  const result: SpotifyTrackItemWithPosition[] = []
+  let url: string | null = `${API_BASE}/playlists/${playlistId}/tracks`
+  while (url) {
+    const page: { items?: unknown[]; next?: string | null } = await spotifyFetch(url).then(r => r.json())
+    const offset = result.length
+    parsePageItems(page).forEach((track, i) => result.push({ ...track, position: offset + i }))
+    url = page.next ?? null
+  }
+  return result
+}
+
+export async function removeTracksAtPositions(
+  playlistId: string,
+  items: { uri: string; position: number }[],
+): Promise<void> {
+  const grouped = new Map<string, number[]>()
+  for (const { uri, position } of items) {
+    const positions = grouped.get(uri) ?? []
+    positions.push(position)
+    grouped.set(uri, positions)
+  }
+  const tracks = Array.from(grouped.entries()).map(([uri, positions]) => ({ uri, positions }))
+  await spotifyFetch(`/playlists/${playlistId}/tracks`, {
+    method: 'DELETE',
+    body: JSON.stringify({ tracks }),
+  })
+}
+
 
 // — AI suggestion helpers —
 

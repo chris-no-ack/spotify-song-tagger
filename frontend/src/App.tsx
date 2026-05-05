@@ -8,6 +8,7 @@ import PlayerBar from './components/PlayerBar'
 import SettingsScreen from './components/SettingsScreen'
 import PlaylistExportDialog from './components/PlaylistExportDialog'
 import LiveEditPlaylistDialog from './components/LiveEditPlaylistDialog'
+import DuplicatesDialog from './components/DuplicatesDialog'
 import type { SpotifyPlaylist } from './spotifyApi'
 import { handleCallback } from './spotifyAuth'
 import { getConfig } from './settingsStore'
@@ -25,6 +26,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showLiveEditDialog, setShowLiveEditDialog] = useState(false)
+  const [showDuplicates, setShowDuplicates] = useState(false)
   const [liveEditMode, setLiveEditMode] = useState(false)
   const [liveEditSongs, setLiveEditSongs] = useState<SongResponse[]>([])
   const [liveEditLoading, setLiveEditLoading] = useState(false)
@@ -225,6 +227,14 @@ export default function App() {
           onClose={() => setShowLiveEditDialog(false)}
         />
       )}
+      {showDuplicates && liveEditPlaylistId && liveEditPlaylistName && (
+        <DuplicatesDialog
+          playlistId={liveEditPlaylistId}
+          playlistName={liveEditPlaylistName}
+          onRemoved={() => loadLivePlaylistSongs(liveEditPlaylistId)}
+          onClose={() => setShowDuplicates(false)}
+        />
+      )}
 
       <FilterBar
         categories={allCategoryNames}
@@ -247,13 +257,28 @@ export default function App() {
         onOpenLiveEditDialog={() => setShowLiveEditDialog(true)}
         onExitLiveEdit={handleExitLiveEdit}
       />
-      {liveEditLoading && (
+      {liveEditMode && (
         <div className="flex items-center gap-2 px-4 py-2 bg-blue-900/40 border-b border-blue-800 text-xs text-blue-300">
-          <svg className="animate-spin h-3.5 w-3.5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
-          Loading {liveEditPlaylistName ?? 'playlist'}…
+          {liveEditLoading ? (
+            <>
+              <svg className="animate-spin h-3.5 w-3.5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Loading {liveEditPlaylistName ?? 'playlist'}…
+            </>
+          ) : (
+            <>
+              <span>Editing: <span className="text-blue-200 font-medium">{liveEditPlaylistName}</span></span>
+              <span className="text-blue-700">·</span>
+              <button
+                onClick={() => setShowDuplicates(true)}
+                className="text-blue-300 hover:text-blue-100 underline underline-offset-2"
+              >
+                Find Duplicates
+              </button>
+            </>
+          )}
         </div>
       )}
 
