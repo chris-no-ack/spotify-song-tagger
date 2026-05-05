@@ -155,10 +155,10 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
         newSongTags.push({ songUri: uri, tagId: tag.id! })
       }
 
-      // Ignored if any playlist parses to value "Ignore"
+      // Ignored if any playlist's tag value starts with "Ignore"
       song.ignored = playlistNames.some(name => {
         const p = parseCategoryAndValue(name, config.playlistNameFilter, categoryKeywords)
-        return p?.value.toLowerCase() === 'ignore'
+        return p?.value.toLowerCase().startsWith('ignore')
       })
 
       songsToSave.push(song)

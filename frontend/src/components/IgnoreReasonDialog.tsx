@@ -10,10 +10,10 @@ interface Props {
 export default function IgnoreReasonDialog({ categories, onConfirm, onCancel }: Props) {
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
-  // Collect all tags whose value is "Ignore" — each represents an ignore-reason playlist
+  // Collect all tags whose value starts with "Ignore" — each represents an ignore-reason playlist
   const ignoreTags = categories.flatMap(c =>
     c.tags
-      .filter(t => t.value.toLowerCase() === 'ignore')
+      .filter(t => t.value.toLowerCase().startsWith('ignore'))
       .map(t => ({ id: t.id, categoryName: c.name, playlistName: t.playlistName }))
   )
 
