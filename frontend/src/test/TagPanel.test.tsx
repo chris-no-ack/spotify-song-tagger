@@ -81,7 +81,9 @@ describe('TagPanel', () => {
     const onIgnore = vi.fn().mockResolvedValue(undefined)
     render(<TagPanel song={song} categories={categories} onTagToggle={vi.fn()} onCategoriesReordered={vi.fn()} onIgnore={onIgnore} />)
     await userEvent.click(screen.getByRole('button', { name: /Add to ignore list/i }))
-    expect(onIgnore).toHaveBeenCalledWith('spotify:track:abc')
+    // Confirm in the dialog (no reasons selected → empty array)
+    await userEvent.click(screen.getByRole('button', { name: /^Ignore$/i }))
+    expect(onIgnore).toHaveBeenCalledWith('spotify:track:abc', [])
   })
 
   it('filters tags by search input', async () => {

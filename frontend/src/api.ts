@@ -90,10 +90,17 @@ export const api = {
     )
   },
 
-  ignoreSong: async (spotifyUri: string): Promise<void> => {
+  ignoreSong: async (spotifyUri: string, tagIds?: number[]): Promise<void> => {
     const config = getConfig()
     await db.songs.update(spotifyUri, { ignored: true })
-    if (config.ignorePlaylistId) {
+    if (tagIds && tagIds.length > 0) {
+      for (const tagId of tagIds) {
+        const tag = await db.tags.get(tagId)
+        if (tag?.spotifyPlaylistId) {
+          await spotifyApi.addTrackToPlaylist(spotifyUri, tag.spotifyPlaylistId)
+        }
+      }
+    } else if (config.ignorePlaylistId) {
       await spotifyApi.addTrackToPlaylist(spotifyUri, config.ignorePlaylistId)
     }
   },

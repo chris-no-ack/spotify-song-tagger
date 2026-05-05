@@ -69,8 +69,9 @@ describe('App', () => {
     await userEvent.click(screen.getAllByText('Song 1')[0])
     await waitFor(() => screen.getByRole('button', { name: /Add to ignore list/i }))
 
-    // Ignore Song 1
+    // Ignore Song 1 — click button then confirm in dialog
     await userEvent.click(screen.getByRole('button', { name: /Add to ignore list/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Ignore$/i }))
 
     // Song 2 should now be shown in the tag panel
     await waitFor(() => {
@@ -143,6 +144,7 @@ describe('App', () => {
     await waitFor(() => screen.getByRole('button', { name: /Add to ignore list/i }))
 
     await userEvent.click(screen.getByRole('button', { name: /Add to ignore list/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Ignore$/i }))
 
     await waitFor(() =>
       expect(screen.getByText('Select a song to tag it')).toBeInTheDocument()

@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import type { CategoryResponse, CategorySuggestion, SongResponse } from '../types'
+import IgnoreReasonDialog from './IgnoreReasonDialog'
 
 interface Props {
   song: SongResponse
   categories: CategoryResponse[]
   onTagToggle: (tagId: number, isCurrentlyAssigned: boolean) => Promise<void>
   onCategoriesReordered: (categories: CategoryResponse[]) => void
-  onIgnore: (path: string) => Promise<void>
+  onIgnore: (uri: string, tagIds: number[]) => Promise<void>
   onRemoveFromPlaylist?: (uri: string) => Promise<void>
 }
 
 export default function TagPanel({ song, categories, onTagToggle, onCategoriesReordered, onIgnore, onRemoveFromPlaylist }: Props) {
   const [ordered, setOrdered] = useState(categories)
   const [tagSearch, setTagSearch] = useState('')
+  const [showIgnoreDialog, setShowIgnoreDialog] = useState(false)
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [suggestionError, setSuggestionError] = useState<string | null>(null)
@@ -110,7 +112,7 @@ export default function TagPanel({ song, categories, onTagToggle, onCategoriesRe
           )}
           <div className="flex gap-2 mt-2">
             <button
-              onClick={() => onIgnore(song.spotifyUri)}
+              onClick={() => setShowIgnoreDialog(true)}
               className="text-xs px-2 py-1 rounded border border-neutral-600 text-neutral-400 hover:border-red-700 hover:text-red-400 transition-colors"
               title="Hide this song from the list"
             >
@@ -221,6 +223,16 @@ export default function TagPanel({ song, categories, onTagToggle, onCategoriesRe
           )
         })}
       </div>
+      {showIgnoreDialog && (
+        <IgnoreReasonDialog
+          categories={categories}
+          onConfirm={async (tagIds) => {
+            setShowIgnoreDialog(false)
+            await onIgnore(song.spotifyUri, tagIds)
+          }}
+          onCancel={() => setShowIgnoreDialog(false)}
+        />
+      )}
     </div>
   )
 }
