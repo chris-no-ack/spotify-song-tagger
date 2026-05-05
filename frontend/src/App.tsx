@@ -26,6 +26,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showLiveEditDialog, setShowLiveEditDialog] = useState(false)
+  const [liveEditDialogKey, setLiveEditDialogKey] = useState(0)
   const [showDuplicates, setShowDuplicates] = useState(false)
   const [liveEditMode, setLiveEditMode] = useState(false)
   const [liveEditSongs, setLiveEditSongs] = useState<SongResponse[]>([])
@@ -223,6 +224,7 @@ export default function App() {
       )}
       {showLiveEditDialog && (
         <LiveEditPlaylistDialog
+          key={liveEditDialogKey}
           onSelect={handleLiveEditSelected}
           onClose={() => setShowLiveEditDialog(false)}
         />
@@ -254,7 +256,7 @@ export default function App() {
         onOpenSettings={() => setShowSettings(true)}
         onOpenExport={() => setShowExport(true)}
         liveEditPlaylistName={liveEditPlaylistName}
-        onOpenLiveEditDialog={() => setShowLiveEditDialog(true)}
+        onOpenLiveEditDialog={() => { setLiveEditDialogKey(k => k + 1); setShowLiveEditDialog(true) }}
         onExitLiveEdit={handleExitLiveEdit}
       />
       {liveEditMode && (
