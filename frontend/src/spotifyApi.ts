@@ -169,9 +169,24 @@ export async function fetchPlaylistTracksWithPositions(playlistId: string): Prom
   const result: SpotifyTrackItemWithPosition[] = []
   let url: string | null = `${API_BASE}/playlists/${playlistId}/tracks`
   while (url) {
-    const page: { items?: unknown[]; next?: string | null } = await spotifyFetch(url).then(r => r.json())
-    const offset = result.length
-    parsePageItems(page).forEach((track, i) => result.push({ ...track, position: offset + i }))
+    const page = await spotifyFetch(url).then(r => r.json()) as { items?: unknown[]; next?: string | null; offset?: number }
+    const pageOffset = page.offset ?? 0
+    for (let i = 0; i < (page.items ?? []).length; i++) {
+      const item = (page.items ?? [])[i] as { track?: { uri?: string; name?: string; artists?: { name: string }[]; album?: { images?: { url: string }[] }; duration_ms?: number }; added_at?: string }
+      if (!item.track?.uri) continue
+      const track = item.track
+      const artistNames = (track.artists ?? []).map(a => a.name)
+      const images = track.album?.images ?? []
+      result.push({
+        uri: track.uri,
+        title: track.name ?? 'Unknown',
+        artist: artistNames.join(', ') || 'Unknown',
+        coverUrl: images[0]?.url ?? null,
+        durationMs: track.duration_ms ?? 0,
+        addedAt: item.added_at ?? null,
+        position: pageOffset + i,
+      })
+    }
     url = page.next ?? null
   }
   return result

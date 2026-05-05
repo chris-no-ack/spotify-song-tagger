@@ -103,10 +103,7 @@ export default function App() {
     setLiveEditSongs([])
     try {
       await api.getLivePlaylistSongs(playlistId, (batch) => {
-        setLiveEditSongs(prev => {
-          const seen = new Set(prev.map(s => s.spotifyUri))
-          return [...prev, ...batch.filter(s => !seen.has(s.spotifyUri))]
-        })
+        setLiveEditSongs(prev => [...prev, ...batch])
       })
     } finally {
       setLiveEditLoading(false)

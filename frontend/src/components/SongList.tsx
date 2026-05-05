@@ -17,9 +17,9 @@ export default function SongList({ songs, selectedSong, onSelect }: Props) {
       {songs.length === 0 && (
         <div className="px-4 py-6 text-neutral-500 text-sm text-center">No songs</div>
       )}
-      {songs.map(song => (
+      {songs.map((song, i) => (
         <button
-          key={song.spotifyUri}
+          key={`${song.spotifyUri}-${i}`}
           onClick={() => onSelect(song)}
           className={`w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-neutral-800 transition-colors ${
             selectedSong?.spotifyUri === song.spotifyUri ? 'bg-neutral-700' : ''
