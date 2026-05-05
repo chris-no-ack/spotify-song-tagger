@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { SongResponse, SpotifyStatus } from '../types'
 import { useSpotifyPlayer } from '../hooks/useSpotifyPlayer'
 import { api } from '../api'
+import TapTempo from './TapTempo'
 
 interface Props {
   song: SongResponse | null
@@ -175,6 +176,8 @@ export default function PlayerBar({ song, nextSong, onNextSong, spotifyStatus, o
         >
           ⏭
         </button>
+
+        <TapTempo />
 
         <span className="text-xs flex-shrink-0 hidden sm:block">
           {spotifyStatus.authenticated && (
