@@ -56,7 +56,7 @@ export default function TapTempo() {
       onClick={handleTap}
       className={`flex items-center gap-1.5 px-2 py-1 rounded border transition-colors flex-shrink-0 select-none ${
         flash
-          ? 'border-white text-white bg-white/20 scale-110'
+          ? 'border-white text-white bg-white/20'
           : active
           ? 'border-green-600 text-green-400'
           : 'border-neutral-600 text-neutral-400 hover:border-neutral-400 hover:text-neutral-200'
