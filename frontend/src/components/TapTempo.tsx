@@ -6,8 +6,10 @@ const RESET_MS = 3000  // reset after 3 s of inactivity
 export default function TapTempo() {
   const [bpm, setBpm] = useState<number | null>(null)
   const [active, setActive] = useState(false)
+  const [flash, setFlash] = useState(false)
   const taps = useRef<number[]>([])
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const scheduleReset = useCallback(() => {
     if (resetTimer.current) clearTimeout(resetTimer.current)
@@ -20,6 +22,7 @@ export default function TapTempo() {
 
   useEffect(() => () => {
     if (resetTimer.current) clearTimeout(resetTimer.current)
+    if (flashTimer.current) clearTimeout(flashTimer.current)
   }, [])
 
   const handleTap = useCallback(() => {
@@ -42,6 +45,9 @@ export default function TapTempo() {
     }
 
     setActive(true)
+    setFlash(true)
+    if (flashTimer.current) clearTimeout(flashTimer.current)
+    flashTimer.current = setTimeout(() => setFlash(false), 120)
     scheduleReset()
   }, [scheduleReset])
 
@@ -49,10 +55,13 @@ export default function TapTempo() {
     <button
       onClick={handleTap}
       className={`flex items-center gap-1.5 px-2 py-1 rounded border transition-colors flex-shrink-0 select-none ${
-        active
+        flash
+          ? 'border-white text-white bg-white/20 scale-110'
+          : active
           ? 'border-green-600 text-green-400'
           : 'border-neutral-600 text-neutral-400 hover:border-neutral-400 hover:text-neutral-200'
       }`}
+      style={{ transition: flash ? 'none' : 'color 200ms, border-color 200ms, background-color 200ms, transform 150ms' }}
       title="Tap to measure BPM (average of last 4 taps)"
     >
       {/* Metronome symbol */}
