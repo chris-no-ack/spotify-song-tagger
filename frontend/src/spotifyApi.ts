@@ -115,7 +115,7 @@ export interface SpotifyTrackItem {
   artist: string
   coverUrl: string | null
   durationMs: number
-  addedAt: string | null  // "YYYY-MM-DD"
+  addedAt: string | null  // ISO 8601 timestamp, e.g. "2024-01-15T14:30:00Z"
 }
 
 function parsePageItems(page: { items?: unknown[]; next?: string | null }): SpotifyTrackItem[] {
@@ -131,7 +131,7 @@ function parsePageItems(page: { items?: unknown[]; next?: string | null }): Spot
       artist: artistNames.join(', ') || 'Unknown',
       coverUrl: images[0]?.url ?? null,
       durationMs: track.duration_ms ?? 0,
-      addedAt: added_at ? added_at.substring(0, 10) : null,
+      addedAt: added_at ?? null,
     })
   }
   return tracks
@@ -181,6 +181,9 @@ export async function removeTracksAtPositions(
   playlistId: string,
   items: { uri: string; position: number }[],
 ): Promise<void> {
+  // snapshot_id is required for Spotify to honour the positions array
+  const { snapshot_id } = await spotifyFetch(`/playlists/${playlistId}?fields=snapshot_id`).then(r => r.json()) as { snapshot_id: string }
+
   const grouped = new Map<string, number[]>()
   for (const { uri, position } of items) {
     const positions = grouped.get(uri) ?? []
@@ -190,7 +193,7 @@ export async function removeTracksAtPositions(
   const tracks = Array.from(grouped.entries()).map(([uri, positions]) => ({ uri, positions }))
   await spotifyFetch(`/playlists/${playlistId}/tracks`, {
     method: 'DELETE',
-    body: JSON.stringify({ tracks }),
+    body: JSON.stringify({ tracks, snapshot_id }),
   })
 }
 

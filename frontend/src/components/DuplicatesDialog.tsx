@@ -56,8 +56,11 @@ function detectDuplicates(tracks: SpotifyTrackItemWithPosition[]): DuplicateEntr
 }
 
 function fmt(date: string | null): string {
-  if (!date) return 'unknown date'
-  return new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  if (!date) return 'unknown'
+  return new Date(date).toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
 export default function DuplicatesDialog({ playlistId, playlistName, onRemoved, onClose }: Props) {
