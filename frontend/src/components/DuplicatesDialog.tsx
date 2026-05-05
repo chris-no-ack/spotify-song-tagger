@@ -22,36 +22,58 @@ interface Props {
 }
 
 function detectDuplicates(tracks: SpotifyTrackItemWithPosition[]): DuplicateEntry[] {
-  const grouped = new Map<string, SpotifyTrackItemWithPosition[]>()
-  for (const t of tracks) {
-    const group = grouped.get(t.uri) ?? []
-    group.push(t)
-    grouped.set(t.uri, group)
-  }
+  const seenUris = new Map<string, SpotifyTrackItemWithPosition>()
+  // key: "title:firstArtist" → durations of already-seen tracks
+  const seenNameArtist = new Map<string, number[]>()
+  const duplicatePositions = new Set<number>()
 
-  const entries: DuplicateEntry[] = []
-  for (const occurrences of grouped.values()) {
-    if (occurrences.length < 2) continue
-    // Sort: earliest addedAt first; if equal or null, lower position first
-    const sorted = [...occurrences].sort((a, b) => {
-      if (a.addedAt && b.addedAt) return a.addedAt.localeCompare(b.addedAt) || a.position - b.position
-      if (a.addedAt) return -1
-      if (b.addedAt) return 1
-      return a.position - b.position
-    })
-    const original = sorted[0]
-    for (const dup of sorted.slice(1)) {
-      entries.push({
-        uri: dup.uri,
-        title: dup.title,
-        artist: dup.artist,
-        position: dup.position,
-        addedAt: dup.addedAt,
-        originalAddedAt: original.addedAt,
-      })
+  // Sort by addedAt ascending (earliest first) so the original is always processed first
+  const sorted = [...tracks].sort((a, b) => {
+    if (a.addedAt && b.addedAt) return a.addedAt.localeCompare(b.addedAt) || a.position - b.position
+    if (a.addedAt) return -1
+    if (b.addedAt) return 1
+    return a.position - b.position
+  })
+
+  for (const t of sorted) {
+    const nameArtistKey = `${t.title}:${t.firstArtist}`.toLowerCase()
+    if (seenUris.has(t.uri)) {
+      // Exact URI match — definite duplicate
+      duplicatePositions.add(t.position)
+    } else {
+      const seenDurations = seenNameArtist.get(nameArtistKey)
+      if (seenDurations?.some(d => Math.abs(d - t.durationMs) < 2000)) {
+        // Same name + first artist + similar duration — treat as duplicate
+        duplicatePositions.add(t.position)
+      } else {
+        seenUris.set(t.uri, t)
+        const durations = seenNameArtist.get(nameArtistKey) ?? []
+        durations.push(t.durationMs)
+        seenNameArtist.set(nameArtistKey, durations)
+      }
     }
   }
-  // Sort entries by title for display
+
+  // Build DuplicateEntry list — originals are the first seen per URI/name+artist
+  const entries: DuplicateEntry[] = sorted
+    .filter(t => duplicatePositions.has(t.position))
+    .map(t => {
+      const original = seenUris.get(t.uri)
+        ?? seenUris.get(t.uri) // same-id case
+        // For name+artist duplicates, find the original by key
+        ?? Array.from(seenUris.values()).find(o =>
+          `${o.title}:${o.firstArtist}`.toLowerCase() === `${t.title}:${t.firstArtist}`.toLowerCase()
+        ) ?? null
+      return {
+        uri: t.uri,
+        title: t.title,
+        artist: t.artist,
+        position: t.position,
+        addedAt: t.addedAt,
+        originalAddedAt: original?.addedAt ?? null,
+      }
+    })
+
   return entries.sort((a, b) => a.title.localeCompare(b.title))
 }
 

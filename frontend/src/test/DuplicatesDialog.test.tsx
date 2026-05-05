@@ -18,6 +18,7 @@ function makeTrack(overrides: Partial<SpotifyTrackItemWithPosition>): SpotifyTra
     uri: 'spotify:track:aaa',
     title: 'Track A',
     artist: 'Artist A',
+    firstArtist: 'Artist A',
     coverUrl: null,
     durationMs: 180000,
     addedAt: '2024-01-01',

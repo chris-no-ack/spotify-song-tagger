@@ -163,6 +163,7 @@ export async function streamPlaylistTracks(
 
 export interface SpotifyTrackItemWithPosition extends SpotifyTrackItem {
   position: number
+  firstArtist: string
 }
 
 export async function fetchPlaylistTracksWithPositions(playlistId: string): Promise<SpotifyTrackItemWithPosition[]> {
@@ -178,9 +179,10 @@ export async function fetchPlaylistTracksWithPositions(playlistId: string): Prom
       const artistNames = (track.artists ?? []).map(a => a.name)
       const images = track.album?.images ?? []
       result.push({
-        uri: track.uri,
+        uri: track.uri as string,
         title: track.name ?? 'Unknown',
         artist: artistNames.join(', ') || 'Unknown',
+        firstArtist: artistNames[0] ?? 'Unknown',
         coverUrl: images[0]?.url ?? null,
         durationMs: track.duration_ms ?? 0,
         addedAt: item.added_at ?? null,
@@ -196,20 +198,25 @@ export async function removeTracksAtPositions(
   playlistId: string,
   items: { uri: string; position: number }[],
 ): Promise<void> {
-  // snapshot_id is required for Spotify to honour the positions array
-  const { snapshot_id } = await spotifyFetch(`/playlists/${playlistId}?fields=snapshot_id`).then(r => r.json()) as { snapshot_id: string }
+  // Sort descending so we delete from the end first — this keeps lower positions valid
+  // across multiple chunked requests (Spotify API limit: 100 items per DELETE).
+  const positions = [...items]
+    .map(i => i.position)
+    .sort((a, b) => b - a)
 
-  const grouped = new Map<string, number[]>()
-  for (const { uri, position } of items) {
-    const positions = grouped.get(uri) ?? []
-    positions.push(position)
-    grouped.set(uri, positions)
+  const CHUNK_SIZE = 100
+  for (let i = 0; i < positions.length; i += CHUNK_SIZE) {
+    const chunk = positions.slice(i, i + CHUNK_SIZE)
+
+    // Re-fetch snapshot_id before each request since it changes after every mutation.
+    const { snapshot_id } = await spotifyFetch(`/playlists/${playlistId}?fields=snapshot_id`)
+      .then(r => r.json()) as { snapshot_id: string }
+
+    await spotifyFetch(`/playlists/${playlistId}/tracks`, {
+      method: 'DELETE',
+      body: JSON.stringify({ positions: chunk, snapshot_id }),
+    })
   }
-  const tracks = Array.from(grouped.entries()).map(([uri, positions]) => ({ uri, positions }))
-  await spotifyFetch(`/playlists/${playlistId}/tracks`, {
-    method: 'DELETE',
-    body: JSON.stringify({ tracks, snapshot_id }),
-  })
 }
 
 
