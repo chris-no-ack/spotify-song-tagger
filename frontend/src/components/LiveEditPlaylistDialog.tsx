@@ -12,7 +12,7 @@ export default function LiveEditPlaylistDialog({ onSelect, onClose }: Props) {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
-  const [onlyMine, setOnlyMine] = useState(false)
+  const [onlyMine, setOnlyMine] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 

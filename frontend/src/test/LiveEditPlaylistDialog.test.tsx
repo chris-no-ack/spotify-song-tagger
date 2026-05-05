@@ -34,11 +34,12 @@ describe('LiveEditPlaylistDialog', () => {
       expect(screen.getByText('Loading playlists…')).toBeInTheDocument()
     })
 
-    it('renders all playlists sorted alphabetically after load', async () => {
+    it('renders owned playlists sorted alphabetically after load', async () => {
       render(<LiveEditPlaylistDialog onSelect={vi.fn()} onClose={vi.fn()} />)
       await waitFor(() => expect(screen.getByText('Afrobeats')).toBeInTheDocument())
       const items = screen.getAllByRole('radio')
-      expect(items.map(r => (r as HTMLInputElement).value)).toEqual(['pl-a', 'pl-b', 'pl-s', 'pl-f'])
+      // 'pl-f' (Shared) is foreign-owned and hidden by default
+      expect(items.map(r => (r as HTMLInputElement).value)).toEqual(['pl-a', 'pl-b', 'pl-s'])
     })
 
     it('shows error message when loading fails', async () => {
@@ -122,18 +123,24 @@ describe('LiveEditPlaylistDialog', () => {
   })
 
   describe('ownership filter', () => {
-    it('shows all playlists by default', async () => {
+    it('shows only owned playlists by default', async () => {
       render(<LiveEditPlaylistDialog onSelect={vi.fn()} onClose={vi.fn()} />)
-      await waitFor(() => screen.getByText('Shared'))
-      expect(screen.getByText('Shared')).toBeInTheDocument()
+      await waitFor(() => screen.getByText('Bachata'))
+      expect(screen.queryByText('Shared')).not.toBeInTheDocument()
     })
 
-    it('hides foreign playlists when "Only my playlists" is checked', async () => {
+    it('hides foreign playlists by default ("Only my playlists" is on)', async () => {
+      render(<LiveEditPlaylistDialog onSelect={vi.fn()} onClose={vi.fn()} />)
+      await waitFor(() => screen.getByText('Bachata'))
+      expect(screen.queryByText('Shared')).not.toBeInTheDocument()
+    })
+
+    it('shows foreign playlists when "Only my playlists" is unchecked', async () => {
       const user = userEvent.setup()
       render(<LiveEditPlaylistDialog onSelect={vi.fn()} onClose={vi.fn()} />)
-      await waitFor(() => screen.getByText('Shared'))
+      await waitFor(() => screen.getByText('Bachata'))
       await user.click(screen.getByLabelText('Only my playlists'))
-      expect(screen.queryByText('Shared')).not.toBeInTheDocument()
+      expect(screen.getByText('Shared')).toBeInTheDocument()
       expect(screen.getByText('Bachata')).toBeInTheDocument()
     })
   })

@@ -50,7 +50,7 @@ export default function PlaylistExportDialog({ onClose }: Props) {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
   const [search, setSearch] = useState('')
-  const [onlyMine, setOnlyMine] = useState(false)
+  const [onlyMine, setOnlyMine] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   useEffect(() => {

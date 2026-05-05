@@ -181,8 +181,9 @@ describe('PlaylistExportDialog', () => {
 
       const checkboxes = screen.getAllByRole('checkbox')
       // index 0 = "Only my playlists", index 1 = "Select all", rest = playlist checkboxes
+      // "Shared" is foreign-owned and hidden by default (onlyMine = true)
       const labels = checkboxes.slice(2).map(cb => cb.closest('label')?.textContent?.trim())
-      expect(labels).toEqual(['Afrobeats', 'Bachata', 'Salsa', 'Shared'])
+      expect(labels).toEqual(['Afrobeats', 'Bachata', 'Salsa'])
     })
 
     it('all checkboxes are unchecked initially', async () => {
@@ -209,20 +210,31 @@ describe('PlaylistExportDialog', () => {
       await waitFor(() => screen.getByLabelText('Only my playlists'))
     })
 
-    it('is unchecked by default (shows all playlists)', async () => {
+    it('is checked by default (shows only my playlists)', async () => {
       mockFetchAllPlaylists.mockResolvedValue(makePlaylists())
       render(<PlaylistExportDialog onClose={() => {}} />)
       await waitFor(() => screen.getByLabelText('Afrobeats'))
 
-      expect(screen.getByLabelText('Only my playlists')).not.toBeChecked()
+      expect(screen.getByLabelText('Only my playlists')).toBeChecked()
+      expect(screen.queryByLabelText('Shared')).not.toBeInTheDocument()
+    })
+
+    it('shows foreign-owned playlists when unchecked', async () => {
+      mockFetchAllPlaylists.mockResolvedValue(makePlaylists())
+      render(<PlaylistExportDialog onClose={() => {}} />)
+      await waitFor(() => screen.getByLabelText('Afrobeats'))
+
+      await userEvent.click(screen.getByLabelText('Only my playlists'))
+
       expect(screen.getByLabelText('Shared')).toBeInTheDocument()
     })
 
-    it('hides foreign-owned playlists when checked', async () => {
+    it('hides foreign-owned playlists when re-checked', async () => {
       mockFetchAllPlaylists.mockResolvedValue(makePlaylists())
       render(<PlaylistExportDialog onClose={() => {}} />)
       await waitFor(() => screen.getByLabelText('Afrobeats'))
 
+      await userEvent.click(screen.getByLabelText('Only my playlists'))
       await userEvent.click(screen.getByLabelText('Only my playlists'))
 
       expect(screen.getByLabelText('Afrobeats')).toBeInTheDocument()
@@ -239,7 +251,7 @@ describe('PlaylistExportDialog', () => {
       await userEvent.click(screen.getByLabelText('Only my playlists'))
       await userEvent.click(screen.getByLabelText('Only my playlists'))
 
-      expect(screen.getByLabelText('Shared')).toBeInTheDocument()
+      expect(screen.queryByLabelText('Shared')).not.toBeInTheDocument()
     })
 
     it('combines with the search filter', async () => {
@@ -247,7 +259,7 @@ describe('PlaylistExportDialog', () => {
       render(<PlaylistExportDialog onClose={() => {}} />)
       await waitFor(() => screen.getByLabelText('Afrobeats'))
 
-      await userEvent.click(screen.getByLabelText('Only my playlists'))
+      // onlyMine is already on by default; just type the search
       await userEvent.type(screen.getByPlaceholderText(/search playlists/i), 'sa')
 
       expect(screen.getByLabelText('Salsa')).toBeInTheDocument()
