@@ -17,6 +17,7 @@ interface StoredTokens {
   accessToken: string
   refreshToken: string
   expiresAt: number  // ms since epoch
+  grantedScopes: string[]
 }
 
 function base64url(buffer: ArrayBuffer): string {
@@ -129,11 +130,12 @@ export async function handleCallback(): Promise<boolean> {
   return true
 }
 
-function storeTokens(data: { access_token: string; refresh_token: string; expires_in: number }) {
+function storeTokens(data: { access_token: string; refresh_token: string; expires_in: number; scope?: string }) {
   const tokens: StoredTokens = {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
     expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+    grantedScopes: data.scope?.split(' ') ?? [],
   }
   localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens))
 }
@@ -149,7 +151,10 @@ function getStoredTokens(): StoredTokens | null {
 
 export function isAuthenticated(): boolean {
   const tokens = getStoredTokens()
-  return tokens !== null && !!tokens.refreshToken
+  if (!tokens?.refreshToken) return false
+  // If any required scope is missing (or scopes were never stored), force re-auth
+  const granted = new Set(tokens.grantedScopes ?? [])
+  return SCOPES.split(' ').every(s => granted.has(s))
 }
 
 export async function getAccessToken(): Promise<string> {
