@@ -28,7 +28,7 @@ export const api = {
   assignTag: async (spotifyUri: string, tagId: number): Promise<void> => {
     const tag = await db.tags.get(tagId)
     if (!tag?.spotifyPlaylistId) throw new Error(`Tag ${tagId} has no Spotify playlist ID`)
-    await db.songTags.add({ songUri: spotifyUri, tagId })
+    await db.songTags.put({ songUri: spotifyUri, tagId })
     await spotifyApi.addTrackToPlaylist(spotifyUri, tag.spotifyPlaylistId)
   },
 
