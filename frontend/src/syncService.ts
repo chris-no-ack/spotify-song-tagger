@@ -51,6 +51,7 @@ function parseCategoryAndValue(
 export async function sync(onProgress?: (p: SyncProgress) => void): Promise<SyncResult> {
   const config = getConfig()
   const categoryKeywords = new Set(config.categoryNames)
+  const blacklist = config.playlistNameBlacklist.filter(Boolean)
 
   console.group('[Sync] Starting sync')
   console.log('[Sync] Config:', {
@@ -69,7 +70,7 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
   const filtered = allPlaylists.filter(p => {
     const ownerMatch = p.ownerId === currentUserId
     const nameMatch = p.name.toLowerCase().includes(config.playlistNameFilter.toLowerCase())
-    const notBlacklisted = !config.playlistNameBlacklist.some(bl => p.name.includes(bl))
+    const notBlacklisted = !blacklist.some(bl => p.name.includes(bl))
     const notShazam = p.id !== config.shazamPlaylistId
     const passes = ownerMatch && nameMatch && notBlacklisted && notShazam
     if (!passes) {
