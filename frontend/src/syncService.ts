@@ -52,15 +52,33 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
   const config = getConfig()
   const categoryKeywords = new Set(config.categoryNames)
 
-  const currentUserId = await getCurrentUserId()
-  const allPlaylists = await fetchAllPlaylists()
+  console.group('[Sync] Starting sync')
+  console.log('[Sync] Config:', {
+    playlistNameFilter: config.playlistNameFilter,
+    categoryNames: config.categoryNames,
+    playlistNameBlacklist: config.playlistNameBlacklist,
+    shazamPlaylistId: config.shazamPlaylistId,
+  })
 
-  const filtered = allPlaylists.filter(p =>
-    p.ownerId === currentUserId &&
-    p.name.toLowerCase().includes(config.playlistNameFilter.toLowerCase()) &&
-    !config.playlistNameBlacklist.some(bl => p.name.includes(bl)) &&
-    p.id !== config.shazamPlaylistId
-  )
+  const currentUserId = await getCurrentUserId()
+  console.log('[Sync] Current user ID:', currentUserId)
+
+  const allPlaylists = await fetchAllPlaylists()
+  console.log(`[Sync] Total playlists fetched: ${allPlaylists.length}`)
+
+  const filtered = allPlaylists.filter(p => {
+    const ownerMatch = p.ownerId === currentUserId
+    const nameMatch = p.name.toLowerCase().includes(config.playlistNameFilter.toLowerCase())
+    const notBlacklisted = !config.playlistNameBlacklist.some(bl => p.name.includes(bl))
+    const notShazam = p.id !== config.shazamPlaylistId
+    const passes = ownerMatch && nameMatch && notBlacklisted && notShazam
+    if (!passes) {
+      console.log(`[Sync] Excluded "${p.name}" (owner=${p.ownerId}): ownerMatch=${ownerMatch}, nameMatch=${nameMatch}, notBlacklisted=${notBlacklisted}, notShazam=${notShazam}`)
+    }
+    return passes
+  })
+
+  console.log(`[Sync] Playlists after filter: ${filtered.length}`, filtered.map(p => p.name))
 
   // Collect tracks per playlist (same algorithm as Java)
   const playlistsByUri = new Map<string, string[]>()  // uri → playlist names
@@ -72,6 +90,7 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
     onProgress?.({ current: playlist.name, done: i, total: filtered.length })
     playlistIdByName.set(playlist.name, playlist.id)
     const tracks = await fetchPlaylistTracks(playlist.tracksHref)
+    console.log(`[Sync] "${playlist.name}": ${tracks.length} tracks`)
     for (const track of tracks) {
       if (!playlistsByUri.has(track.uri)) playlistsByUri.set(track.uri, [])
       playlistsByUri.get(track.uri)!.push(playlist.name)
@@ -88,6 +107,8 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
       }
     }
   }
+
+  console.log(`[Sync] Total unique tracks collected: ${playlistsByUri.size}`)
 
   await db.transaction('rw', [db.songs, db.tags, db.categories, db.songTags], async () => {
     const existingSongs = new Map((await db.songs.toArray()).map(s => [s.spotifyUri, s]))
@@ -209,7 +230,10 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
     await db.songTags.bulkAdd(dedupedSongTags)
   })
 
-  return { playlistsProcessed: filtered.length, songsUpdated: playlistsByUri.size }
+  const result = { playlistsProcessed: filtered.length, songsUpdated: playlistsByUri.size }
+  console.log('[Sync] Done:', result)
+  console.groupEnd()
+  return result
 }
 
 // Export parseCategoryAndValue for unit testing
