@@ -100,7 +100,7 @@ export async function fetchAllPlaylists(): Promise<SpotifyPlaylist[]> {
       result.push({
         id: item.id,
         name: item.name,
-        tracksHref: item.tracks?.href,
+        tracksHref: item.tracks?.href ?? item.items?.href,
         ownerId: item.owner?.id,
       })
     }
