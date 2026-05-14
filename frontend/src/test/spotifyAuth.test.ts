@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // — Module under test is imported after mocks are set up —
 
+const ALL_SCOPES = 'playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state playlist-read-private streaming user-read-email user-read-private'
+const GRANTED_SCOPES = ALL_SCOPES.split(' ')
+
+/** A valid stored-token object that passes the scope check */
+function validTokens(overrides: object = {}) {
+  return { accessToken: 'at', refreshToken: 'rt', expiresAt: Date.now() + 3600_000, grantedScopes: GRANTED_SCOPES, ...overrides }
+}
+
 describe('spotifyAuth', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -22,9 +30,7 @@ describe('spotifyAuth', () => {
     })
 
     it('returns true when a refresh token is present', async () => {
-      localStorage.setItem('spotify_tokens', JSON.stringify({
-        accessToken: 'at', refreshToken: 'rt', expiresAt: Date.now() + 3600_000,
-      }))
+      localStorage.setItem('spotify_tokens', JSON.stringify(validTokens()))
       const { isAuthenticated } = await import('../spotifyAuth')
       expect(isAuthenticated()).toBe(true)
     })
@@ -40,9 +46,7 @@ describe('spotifyAuth', () => {
 
   describe('logout', () => {
     it('removes stored tokens', async () => {
-      localStorage.setItem('spotify_tokens', JSON.stringify({
-        accessToken: 'at', refreshToken: 'rt', expiresAt: Date.now() + 3600_000,
-      }))
+      localStorage.setItem('spotify_tokens', JSON.stringify(validTokens()))
       const { logout, isAuthenticated } = await import('../spotifyAuth')
       logout()
       expect(isAuthenticated()).toBe(false)
@@ -59,23 +63,19 @@ describe('spotifyAuth', () => {
     })
 
     it('returns the cached access token when it has not expired', async () => {
-      localStorage.setItem('spotify_tokens', JSON.stringify({
-        accessToken: 'valid-token', refreshToken: 'rt', expiresAt: Date.now() + 3600_000,
-      }))
+      localStorage.setItem('spotify_tokens', JSON.stringify(validTokens({ accessToken: 'valid-token' })))
       const { getAccessToken } = await import('../spotifyAuth')
       expect(await getAccessToken()).toBe('valid-token')
     })
 
     it('refreshes and stores a new token when expired', async () => {
       localStorage.setItem('app_config', JSON.stringify({ spotifyClientId: 'client-x' }))
-      localStorage.setItem('spotify_tokens', JSON.stringify({
-        accessToken: 'old', refreshToken: 'rt-old', expiresAt: Date.now() - 1000,
-      }))
+      localStorage.setItem('spotify_tokens', JSON.stringify(validTokens({ accessToken: 'old', refreshToken: 'rt-old', expiresAt: Date.now() - 1000 })))
 
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          access_token: 'new-token', refresh_token: 'rt-new', expires_in: 3600,
+          access_token: 'new-token', refresh_token: 'rt-new', expires_in: 3600, scope: ALL_SCOPES,
         }),
       }))
 
@@ -90,14 +90,12 @@ describe('spotifyAuth', () => {
 
     it('keeps old refresh token when Spotify omits it in the refresh response', async () => {
       localStorage.setItem('app_config', JSON.stringify({ spotifyClientId: 'client-x' }))
-      localStorage.setItem('spotify_tokens', JSON.stringify({
-        accessToken: 'old', refreshToken: 'rt-original', expiresAt: Date.now() - 1000,
-      }))
+      localStorage.setItem('spotify_tokens', JSON.stringify(validTokens({ accessToken: 'old', refreshToken: 'rt-original', expiresAt: Date.now() - 1000 })))
 
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          access_token: 'refreshed', expires_in: 3600,
+          access_token: 'refreshed', expires_in: 3600, scope: ALL_SCOPES,
           // refresh_token intentionally omitted
         }),
       }))
@@ -111,9 +109,7 @@ describe('spotifyAuth', () => {
 
     it('logs out and throws when the refresh request fails', async () => {
       localStorage.setItem('app_config', JSON.stringify({ spotifyClientId: 'client-x' }))
-      localStorage.setItem('spotify_tokens', JSON.stringify({
-        accessToken: 'old', refreshToken: 'rt', expiresAt: Date.now() - 1000,
-      }))
+      localStorage.setItem('spotify_tokens', JSON.stringify(validTokens({ accessToken: 'old', expiresAt: Date.now() - 1000 })))
 
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, text: () => Promise.resolve('Unauthorized') }))
 
@@ -160,7 +156,7 @@ describe('spotifyAuth', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          access_token: 'new-at', refresh_token: 'new-rt', expires_in: 3600,
+          access_token: 'new-at', refresh_token: 'new-rt', expires_in: 3600, scope: ALL_SCOPES,
         }),
       }))
 
