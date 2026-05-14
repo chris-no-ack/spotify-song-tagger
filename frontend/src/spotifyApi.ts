@@ -140,12 +140,23 @@ function parsePageItems(page: { items?: unknown[]; next?: string | null }): Spot
 }
 
 export async function fetchPlaylistTracks(tracksHref: string): Promise<SpotifyTrackItem[]> {
+  if (!tracksHref) {
+    console.warn('[fetchPlaylistTracks] tracksHref is null/undefined — returning empty')
+    return []
+  }
   const result: SpotifyTrackItem[] = []
   let url: string | null = tracksHref
+  let pageIndex = 0
   while (url) {
     const page: { items?: unknown[]; next?: string | null } = await spotifyFetch(url).then(r => r.json())
-    result.push(...parsePageItems(page))
+    const rawCount = page.items?.length ?? 0
+    const parsed = parsePageItems(page)
+    if (rawCount !== parsed.length) {
+      console.warn(`[fetchPlaylistTracks] page ${pageIndex}: ${rawCount} raw items, ${parsed.length} parsed (${rawCount - parsed.length} skipped — likely local files or null tracks)`)
+    }
+    result.push(...parsed)
     url = page.next ?? null
+    pageIndex++
   }
   return result
 }

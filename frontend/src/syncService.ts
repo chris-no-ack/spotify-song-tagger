@@ -90,6 +90,9 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
   for (const [i, playlist] of filtered.entries()) {
     onProgress?.({ current: playlist.name, done: i, total: filtered.length })
     playlistIdByName.set(playlist.name, playlist.id)
+    if (!playlist.tracksHref) {
+      console.warn(`[Sync] "${playlist.name}" has no tracksHref — skipping track fetch`)
+    }
     const tracks = await fetchPlaylistTracks(playlist.tracksHref)
     console.log(`[Sync] "${playlist.name}": ${tracks.length} tracks`)
     for (const track of tracks) {
