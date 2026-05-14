@@ -191,12 +191,11 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
       songsToSave.push(song)
     }
 
-    // Reset ignored = false for songs no longer in any playlist
-    for (const [uri, song] of existingSongs) {
-      if (!playlistsByUri.has(uri)) {
-        song.ignored = false
-        songsToSave.push(song)
-      }
+    // Delete songs that are no longer in any active (non-filtered) playlist
+    const songsToDelete = [...existingSongs.keys()].filter(uri => !playlistsByUri.has(uri))
+    if (songsToDelete.length > 0) {
+      console.log(`[Sync] Removing ${songsToDelete.length} songs no longer in any active playlist`)
+      await db.songs.bulkDelete(songsToDelete)
     }
 
     // Delete tags that no longer appear in any playlist
