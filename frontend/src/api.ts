@@ -1,11 +1,13 @@
 import type { CategoryResponse, CategorySuggestion, SongResponse, SpotifyStatus } from './types'
-import { querySongs, querySong, queryCategories, createTrackSongBuilder, db } from './db'
+import { querySongs, querySong, queryCategories, createTrackSongBuilder, queryIgnoreLists, db } from './db'
+import type { IgnoreList } from './db'
 import { getConfig, saveConfig } from './settingsStore'
 import * as spotifyAuth from './spotifyAuth'
 import * as spotifyApi from './spotifyApi'
 import { sync } from './syncService'
 import type { SyncProgress } from './syncService'
 export type { SyncProgress }
+export type { IgnoreList }
 import { getSuggestions } from './anthropicApi'
 
 export const api = {
@@ -133,6 +135,10 @@ export const api = {
     const buildSongs = await createTrackSongBuilder()
     await spotifyApi.streamPlaylistTracks(playlistId, (tracks) => onBatch(buildSongs(tracks)))
   },
+
+  // Only looks up/resolves ignore-list playlist IDs when explicitly called —
+  // never loaded eagerly alongside songs/categories.
+  getIgnoreLists: (): Promise<IgnoreList[]> => queryIgnoreLists(),
 
   ensureSongExists: async (song: SongResponse): Promise<void> => {
     const existing = await db.songs.get(song.spotifyUri)

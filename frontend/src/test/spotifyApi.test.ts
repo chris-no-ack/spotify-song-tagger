@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchAllPlaylists } from '../spotifyApi'
+import { fetchAllPlaylists, fetchPlaylistTrackUris } from '../spotifyApi'
 
 vi.mock('../spotifyAuth', () => ({
   getAccessToken: vi.fn().mockResolvedValue('fake-token'),
@@ -55,5 +55,42 @@ describe('fetchAllPlaylists', () => {
     mockFetch({ items: [makeItem('a', 'Alpha', 'alice')], next: null })
     const result = await fetchAllPlaylists()
     expect(result[0].ownerId).toBe('alice')
+  })
+})
+
+describe('fetchPlaylistTrackUris', () => {
+  function mockTracksFetch(...pages: { items: { track?: { uri?: string } }[]; next: string | null }[]) {
+    let call = 0
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      const page = pages[call++] ?? { items: [], next: null }
+      return { ok: true, status: 200, json: async () => page } as Response
+    })
+  }
+
+  it('returns a set of all track URIs on a single page', async () => {
+    mockTracksFetch({
+      items: [{ track: { uri: 'spotify:track:a' } }, { track: { uri: 'spotify:track:b' } }],
+      next: null,
+    })
+    const result = await fetchPlaylistTrackUris('pl1')
+    expect(result).toEqual(new Set(['spotify:track:a', 'spotify:track:b']))
+  })
+
+  it('follows pagination and merges all pages', async () => {
+    mockTracksFetch(
+      { items: [{ track: { uri: 'spotify:track:a' } }], next: 'https://api.spotify.com/v1/playlists/pl1/tracks?offset=1' },
+      { items: [{ track: { uri: 'spotify:track:b' } }], next: null },
+    )
+    const result = await fetchPlaylistTrackUris('pl1')
+    expect(result).toEqual(new Set(['spotify:track:a', 'spotify:track:b']))
+  })
+
+  it('skips items with a missing track uri', async () => {
+    mockTracksFetch({
+      items: [{ track: { uri: 'spotify:track:a' } }, { track: undefined }, {}],
+      next: null,
+    })
+    const result = await fetchPlaylistTrackUris('pl1')
+    expect(result).toEqual(new Set(['spotify:track:a']))
   })
 })

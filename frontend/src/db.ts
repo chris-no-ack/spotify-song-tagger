@@ -192,3 +192,41 @@ export async function queryCategories(): Promise<CategoryResponse[]> {
         .sort((a, b) => a.value.localeCompare(b.value)),
     }))
 }
+
+export interface IgnoreList {
+  playlistId: string
+  label: string
+}
+
+// Resolves the set of Spotify playlists that represent an "ignore list":
+// the configured default ignore playlist plus any tag whose value starts
+// with "ignore" (an ignore-reason tag, see IgnoreReasonDialog). Intentionally
+// not loaded/exported alongside other data — callers should invoke this only
+// when ignore-list lookups are explicitly requested.
+export async function queryIgnoreLists(): Promise<IgnoreList[]> {
+  const config = getConfig()
+  const byPlaylistId = new Map<string, string[]>()
+
+  function addLabel(playlistId: string, label: string) {
+    const labels = byPlaylistId.get(playlistId) ?? []
+    if (!labels.includes(label)) labels.push(label)
+    byPlaylistId.set(playlistId, labels)
+  }
+
+  if (config.ignorePlaylistId) {
+    addLabel(config.ignorePlaylistId, 'Default')
+  }
+
+  const allTags = await db.tags.toArray()
+  for (const tag of allTags) {
+    if (!tag.spotifyPlaylistId) continue
+    if (!tag.tagValue.toLowerCase().startsWith('ignore')) continue
+    const reason = tag.tagValue.replace(/^ignore\s*/i, '').trim() || 'Default'
+    addLabel(tag.spotifyPlaylistId, reason)
+  }
+
+  return Array.from(byPlaylistId.entries()).map(([playlistId, labels]) => ({
+    playlistId,
+    label: labels.join(', '),
+  }))
+}

@@ -218,6 +218,21 @@ export async function fetchPlaylistTracksWithPositions(playlistId: string): Prom
   return result
 }
 
+// Lightweight fetch used to cross-reference ignore-list playlists against
+// another playlist's tracks — only pulls track URIs, not full metadata.
+export async function fetchPlaylistTrackUris(playlistId: string): Promise<Set<string>> {
+  const uris = new Set<string>()
+  let url: string | null = `${API_BASE}/playlists/${playlistId}/tracks?fields=items(track(uri)),next&limit=100`
+  while (url) {
+    const page = await spotifyFetch(url).then(r => r.json()) as { items?: { track?: { uri?: string } }[]; next?: string | null }
+    for (const item of page.items ?? []) {
+      if (item.track?.uri) uris.add(item.track.uri)
+    }
+    url = page.next ?? null
+  }
+  return uris
+}
+
 export async function removeTracksAtPositions(
   playlistId: string,
   items: { uri: string; position: number }[],

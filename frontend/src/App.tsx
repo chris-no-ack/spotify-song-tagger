@@ -9,6 +9,7 @@ import SettingsScreen from './components/SettingsScreen'
 import PlaylistExportDialog from './components/PlaylistExportDialog'
 import LiveEditPlaylistDialog from './components/LiveEditPlaylistDialog'
 import DuplicatesDialog from './components/DuplicatesDialog'
+import IgnoredSongsDialog from './components/IgnoredSongsDialog'
 import type { SpotifyPlaylist } from './spotifyApi'
 import { handleCallback } from './spotifyAuth'
 import { getConfig } from './settingsStore'
@@ -28,6 +29,7 @@ export default function App() {
   const [showLiveEditDialog, setShowLiveEditDialog] = useState(false)
   const [liveEditDialogKey, setLiveEditDialogKey] = useState(0)
   const [showDuplicates, setShowDuplicates] = useState(false)
+  const [showIgnored, setShowIgnored] = useState(false)
   const [liveEditMode, setLiveEditMode] = useState(false)
   const [liveEditSongs, setLiveEditSongs] = useState<SongResponse[]>([])
   const [liveEditLoading, setLiveEditLoading] = useState(false)
@@ -235,6 +237,14 @@ export default function App() {
           onClose={() => setShowDuplicates(false)}
         />
       )}
+      {showIgnored && liveEditPlaylistId && liveEditPlaylistName && (
+        <IgnoredSongsDialog
+          playlistId={liveEditPlaylistId}
+          playlistName={liveEditPlaylistName}
+          onRemoved={() => loadLivePlaylistSongs(liveEditPlaylistId)}
+          onClose={() => setShowIgnored(false)}
+        />
+      )}
 
       <FilterBar
         categories={allCategoryNames}
@@ -276,6 +286,13 @@ export default function App() {
                 className="text-blue-300 hover:text-blue-100 underline underline-offset-2"
               >
                 Find Duplicates
+              </button>
+              <span className="text-blue-700">·</span>
+              <button
+                onClick={() => setShowIgnored(true)}
+                className="text-blue-300 hover:text-blue-100 underline underline-offset-2"
+              >
+                Find Ignored
               </button>
             </>
           )}

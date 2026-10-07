@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import 'fake-indexeddb/auto'
-import { db, querySongs, querySong, queryCategories } from '../db'
+import { db, querySongs, querySong, queryCategories, queryIgnoreLists } from '../db'
 import type { Song } from '../db'
+import { saveConfig } from '../settingsStore'
 
 // Reset the DB before each test
 beforeEach(async () => {
@@ -11,6 +12,7 @@ beforeEach(async () => {
     await db.categories.clear()
     await db.songTags.clear()
   })
+  localStorage.clear()
 })
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -209,6 +211,61 @@ describe('querySongs', () => {
 })
 
 // ── querySong ─────────────────────────────────────────────────────────────────
+
+describe('queryIgnoreLists', () => {
+  it('returns empty array when nothing is configured', async () => {
+    expect(await queryIgnoreLists()).toEqual([])
+  })
+
+  it('includes the default ignore playlist from config', async () => {
+    saveConfig({ ignorePlaylistId: 'pl-default' })
+    const result = await queryIgnoreLists()
+    expect(result).toEqual([{ playlistId: 'pl-default', label: 'Default' }])
+  })
+
+  it('includes tags whose value starts with "ignore" as reason-labeled lists', async () => {
+    const catId = await seedCategory('Other')
+    await seedTag('Dance Ignore Bad Mix', catId, 'Ignore Bad Mix', 'pl-bad-mix')
+    const result = await queryIgnoreLists()
+    expect(result).toEqual([{ playlistId: 'pl-bad-mix', label: 'Bad Mix' }])
+  })
+
+  it('uses "Default" label when the ignore tag has no reason suffix', async () => {
+    const catId = await seedCategory('Other')
+    await seedTag('Dance Ignore', catId, 'Ignore', 'pl-plain-ignore')
+    const result = await queryIgnoreLists()
+    expect(result).toEqual([{ playlistId: 'pl-plain-ignore', label: 'Default' }])
+  })
+
+  it('ignores tags whose value does not start with "ignore"', async () => {
+    const catId = await seedCategory('Energy')
+    await seedTag('Dance High Energy', catId, 'High', 'pl-energy')
+    expect(await queryIgnoreLists()).toEqual([])
+  })
+
+  it('skips ignore tags without a spotifyPlaylistId', async () => {
+    const catId = await seedCategory('Other')
+    await db.tags.add({ playlistName: 'Dance Ignore Orphan', categoryId: catId, tagValue: 'Ignore Orphan', spotifyPlaylistId: null })
+    expect(await queryIgnoreLists()).toEqual([])
+  })
+
+  it('merges labels when the default playlist and an ignore tag share the same playlist id', async () => {
+    saveConfig({ ignorePlaylistId: 'pl-shared' })
+    const catId = await seedCategory('Other')
+    await seedTag('Dance Ignore Shared', catId, 'Ignore Shared', 'pl-shared')
+    const result = await queryIgnoreLists()
+    expect(result).toEqual([{ playlistId: 'pl-shared', label: 'Default, Shared' }])
+  })
+
+  it('combines the default playlist with multiple distinct ignore-reason tags', async () => {
+    saveConfig({ ignorePlaylistId: 'pl-default' })
+    const catId = await seedCategory('Other')
+    await seedTag('Dance Ignore Bad Mix', catId, 'Ignore Bad Mix', 'pl-bad-mix')
+    await seedTag('Dance Ignore Explicit', catId, 'Ignore Explicit', 'pl-explicit')
+    const result = await queryIgnoreLists()
+    expect(result.map(r => r.playlistId).sort()).toEqual(['pl-bad-mix', 'pl-default', 'pl-explicit'])
+  })
+})
 
 describe('querySong', () => {
   it('returns null for an unknown URI', async () => {
