@@ -3,6 +3,7 @@ export interface AppConfig {
   playlistNameFilter: string
   playlistNameBlacklist: string[]
   ignorePlaylistId: string
+  aiIgnorePlaylistId: string
   shazamPlaylistId: string
   anthropicApiKey: string
   anthropicProxyUrl: string
@@ -16,6 +17,7 @@ const DEFAULTS: AppConfig = {
   playlistNameFilter: 'Dance',
   playlistNameBlacklist: [],
   ignorePlaylistId: '',
+  aiIgnorePlaylistId: '',
   shazamPlaylistId: '',
   anthropicApiKey: '',
   anthropicProxyUrl: '',

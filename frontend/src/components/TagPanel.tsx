@@ -130,6 +130,26 @@ export default function TagPanel({ song, categories, onTagToggle, onCategoriesRe
                 Remove from playlist
               </button>
             )}
+            <button
+              onClick={() => {
+                const query = `Is the song ${song.title} from ${song.artist} AI generated`
+                window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer')
+              }}
+              className="text-xs px-2 py-1 rounded border border-neutral-600 text-neutral-400 hover:border-purple-500 hover:text-purple-400 transition-colors"
+              title="Search Google to check if this song is AI generated"
+            >
+              Check if AI
+            </button>
+            <button
+              onClick={() => {
+                const query = `${song.title} ${song.artist}`
+                window.open(`https://www.deezer.com/search/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer')
+              }}
+              className="text-xs px-2 py-1 rounded border border-neutral-600 text-neutral-400 hover:border-pink-500 hover:text-pink-400 transition-colors"
+              title="Search Deezer — album pages flag AI-generated tracks"
+            >
+              Check on Deezer
+            </button>
           </div>
         </div>
       </div>

@@ -143,6 +143,16 @@ export default function SettingsScreen({ onClose }: Props) {
               />
             </label>
             <label className="block space-y-1">
+              <span className="text-xs text-neutral-400">AI ignore playlist ID</span>
+              <input
+                type="text"
+                value={cfg.aiIgnorePlaylistId}
+                onChange={e => update({ aiIgnorePlaylistId: e.target.value.trim() })}
+                placeholder="Spotify playlist ID for AI-generated songs"
+                className="w-full bg-neutral-800 text-neutral-100 text-sm rounded px-3 py-2 border border-neutral-600 focus:outline-none focus:border-neutral-400 font-mono"
+              />
+            </label>
+            <label className="block space-y-1">
               <span className="text-xs text-neutral-400">Shazam playlist ID</span>
               <input
                 type="text"

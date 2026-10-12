@@ -65,6 +65,20 @@ export async function addTrackToPlaylist(spotifyUri: string, playlistId: string)
   })
 }
 
+// Batched variant of addTrackToPlaylist — adds every URI in as few requests
+// as possible (Spotify API limit: 100 URIs per POST) instead of one request
+// per track.
+export async function addTracksToPlaylist(spotifyUris: string[], playlistId: string): Promise<void> {
+  const CHUNK_SIZE = 100
+  for (let i = 0; i < spotifyUris.length; i += CHUNK_SIZE) {
+    const chunk = spotifyUris.slice(i, i + CHUNK_SIZE)
+    await spotifyFetch(`/playlists/${playlistId}/tracks`, {
+      method: 'POST',
+      body: JSON.stringify({ uris: chunk }),
+    })
+  }
+}
+
 export async function removeTrackFromPlaylist(spotifyUri: string, playlistId: string): Promise<void> {
   await spotifyFetch(`/playlists/${playlistId}/tracks`, {
     method: 'DELETE',
@@ -183,6 +197,8 @@ export async function streamPlaylistTracks(
 export interface SpotifyTrackItemWithPosition extends SpotifyTrackItem {
   position: number
   firstArtist: string
+  /** Spotify artist IDs for every artist credited on the track */
+  artistIds: string[]
 }
 
 export async function fetchPlaylistTracksWithPositions(playlistId: string): Promise<SpotifyTrackItemWithPosition[]> {
@@ -193,19 +209,21 @@ export async function fetchPlaylistTracksWithPositions(playlistId: string): Prom
     const pageOffset = page.offset ?? 0
     for (let i = 0; i < (page.items ?? []).length; i++) {
       const entry = (page.items ?? [])[i] as {
-        track?: { uri?: string; name?: string; artists?: { name: string }[]; album?: { images?: { url: string }[]; release_date?: string }; duration_ms?: number }
-        item?: { uri?: string; name?: string; artists?: { name: string }[]; album?: { images?: { url: string }[]; release_date?: string }; duration_ms?: number }
+        track?: { uri?: string; name?: string; artists?: { name: string; id?: string }[]; album?: { images?: { url: string }[]; release_date?: string }; duration_ms?: number }
+        item?: { uri?: string; name?: string; artists?: { name: string; id?: string }[]; album?: { images?: { url: string }[]; release_date?: string }; duration_ms?: number }
         added_at?: string
       }
       const track = entry.track ?? entry.item
       if (!track?.uri) continue
       const artistNames = (track.artists ?? []).map(a => a.name)
+      const artistIds = (track.artists ?? []).map(a => a.id).filter((id): id is string => !!id)
       const images = track.album?.images ?? []
       result.push({
         uri: track.uri as string,
         title: track.name ?? 'Unknown',
         artist: artistNames.join(', ') || 'Unknown',
         firstArtist: artistNames[0] ?? 'Unknown',
+        artistIds,
         coverUrl: images[0]?.url ?? null,
         durationMs: track.duration_ms ?? 0,
         addedAt: entry.added_at ?? null,
@@ -237,15 +255,19 @@ export async function removeTracksAtPositions(
   playlistId: string,
   items: { uri: string; position: number }[],
 ): Promise<void> {
-  // Sort descending so we delete from the end first — this keeps lower positions valid
-  // across multiple chunked requests (Spotify API limit: 100 items per DELETE).
-  const positions = [...items]
-    .map(i => i.position)
-    .sort((a, b) => b - a)
+  // Spotify's remove-tracks endpoint no longer honors per-occurrence removal
+  // by position (the "positions" field was dropped from the API and is
+  // ignored if sent) — it removes every occurrence of each listed URI. The
+  // previous implementation sent a body built around "positions" with no
+  // "uri"/"tracks" field at all, which doesn't match Spotify's documented
+  // schema and could fail or behave unpredictably. Dedupe by URI instead and
+  // send a single well-formed request per chunk (Spotify API limit: 100
+  // items per DELETE) using { tracks: [{ uri }], snapshot_id }.
+  const uniqueUris = Array.from(new Set(items.map(i => i.uri)))
 
   const CHUNK_SIZE = 100
-  for (let i = 0; i < positions.length; i += CHUNK_SIZE) {
-    const chunk = positions.slice(i, i + CHUNK_SIZE)
+  for (let i = 0; i < uniqueUris.length; i += CHUNK_SIZE) {
+    const chunk = uniqueUris.slice(i, i + CHUNK_SIZE)
 
     // Re-fetch snapshot_id before each request since it changes after every mutation.
     const { snapshot_id } = await spotifyFetch(`/playlists/${playlistId}?fields=snapshot_id`)
@@ -253,7 +275,7 @@ export async function removeTracksAtPositions(
 
     await spotifyFetch(`/playlists/${playlistId}/tracks`, {
       method: 'DELETE',
-      body: JSON.stringify({ positions: chunk, snapshot_id }),
+      body: JSON.stringify({ tracks: chunk.map(uri => ({ uri })), snapshot_id }),
     })
   }
 }

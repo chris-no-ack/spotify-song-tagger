@@ -10,6 +10,7 @@ import PlaylistExportDialog from './components/PlaylistExportDialog'
 import LiveEditPlaylistDialog from './components/LiveEditPlaylistDialog'
 import DuplicatesDialog from './components/DuplicatesDialog'
 import IgnoredSongsDialog from './components/IgnoredSongsDialog'
+import FindAiDialog from './components/FindAiDialog'
 import type { SpotifyPlaylist } from './spotifyApi'
 import { handleCallback } from './spotifyAuth'
 import { getConfig } from './settingsStore'
@@ -30,6 +31,7 @@ export default function App() {
   const [liveEditDialogKey, setLiveEditDialogKey] = useState(0)
   const [showDuplicates, setShowDuplicates] = useState(false)
   const [showIgnored, setShowIgnored] = useState(false)
+  const [showFindAi, setShowFindAi] = useState(false)
   const [liveEditMode, setLiveEditMode] = useState(false)
   const [liveEditSongs, setLiveEditSongs] = useState<SongResponse[]>([])
   const [liveEditLoading, setLiveEditLoading] = useState(false)
@@ -107,10 +109,12 @@ export default function App() {
       await api.getLivePlaylistSongs(playlistId, (batch) => {
         setLiveEditSongs(prev => [...prev, ...batch])
       })
+    } catch (e) {
+      showError(e instanceof Error ? e.message : 'Failed to load playlist')
     } finally {
       setLiveEditLoading(false)
     }
-  }, [])
+  }, [showError])
 
   const handleLiveEditSelected = useCallback(async (playlist: SpotifyPlaylist) => {
     setShowLiveEditDialog(false)
@@ -245,6 +249,14 @@ export default function App() {
           onClose={() => setShowIgnored(false)}
         />
       )}
+      {showFindAi && liveEditPlaylistId && liveEditPlaylistName && (
+        <FindAiDialog
+          playlistId={liveEditPlaylistId}
+          playlistName={liveEditPlaylistName}
+          onRemoved={() => loadLivePlaylistSongs(liveEditPlaylistId)}
+          onClose={() => setShowFindAi(false)}
+        />
+      )}
 
       <FilterBar
         categories={allCategoryNames}
@@ -293,6 +305,13 @@ export default function App() {
                 className="text-blue-300 hover:text-blue-100 underline underline-offset-2"
               >
                 Find Ignored
+              </button>
+              <span className="text-blue-700">·</span>
+              <button
+                onClick={() => setShowFindAi(true)}
+                className="text-blue-300 hover:text-blue-100 underline underline-offset-2"
+              >
+                Find AI
               </button>
             </>
           )}

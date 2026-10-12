@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchAllPlaylists, fetchPlaylistTrackUris } from '../spotifyApi'
+import { fetchAllPlaylists, fetchPlaylistTrackUris, removeTracksAtPositions, addTracksToPlaylist } from '../spotifyApi'
 
 vi.mock('../spotifyAuth', () => ({
   getAccessToken: vi.fn().mockResolvedValue('fake-token'),
@@ -92,5 +92,77 @@ describe('fetchPlaylistTrackUris', () => {
     })
     const result = await fetchPlaylistTrackUris('pl1')
     expect(result).toEqual(new Set(['spotify:track:a']))
+  })
+})
+
+describe('removeTracksAtPositions', () => {
+  function mockDeleteFlow(snapshotIds: string[]) {
+    let snapshotCall = 0
+    const deleteBodies: unknown[] = []
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      if (init?.method === 'DELETE') {
+        deleteBodies.push(JSON.parse(init.body as string))
+        return { ok: true, status: 200, json: async () => ({ snapshot_id: 'new' }) } as Response
+      }
+      // Snapshot-id lookup — a plain GET with no options
+      return { ok: true, status: 200, json: async () => ({ snapshot_id: snapshotIds[snapshotCall++] }) } as Response
+    })
+    return deleteBodies
+  }
+
+  it('sends a single request with a well-formed { tracks: [{ uri }] } body', async () => {
+    const deleteBodies = mockDeleteFlow(['snap1'])
+    await removeTracksAtPositions('pl1', [
+      { uri: 'spotify:track:a', position: 0 },
+      { uri: 'spotify:track:b', position: 2 },
+    ])
+    expect(deleteBodies).toEqual([
+      { tracks: [{ uri: 'spotify:track:a' }, { uri: 'spotify:track:b' }], snapshot_id: 'snap1' },
+    ])
+  })
+
+  it('dedupes repeated URIs into a single entry', async () => {
+    const deleteBodies = mockDeleteFlow(['snap1'])
+    await removeTracksAtPositions('pl1', [
+      { uri: 'spotify:track:a', position: 0 },
+      { uri: 'spotify:track:a', position: 5 },
+    ])
+    expect(deleteBodies).toEqual([
+      { tracks: [{ uri: 'spotify:track:a' }], snapshot_id: 'snap1' },
+    ])
+  })
+
+  it('chunks more than 100 unique URIs into multiple requests', async () => {
+    const items = Array.from({ length: 150 }, (_, i) => ({ uri: `spotify:track:${i}`, position: i }))
+    const deleteBodies = mockDeleteFlow(['snap1', 'snap2'])
+    await removeTracksAtPositions('pl1', items)
+    expect(deleteBodies).toHaveLength(2)
+    expect((deleteBodies[0] as { tracks: unknown[] }).tracks).toHaveLength(100)
+    expect((deleteBodies[1] as { tracks: unknown[] }).tracks).toHaveLength(50)
+  })
+})
+
+describe('addTracksToPlaylist', () => {
+  it('sends a single POST request with all URIs', async () => {
+    const postBodies: unknown[] = []
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      postBodies.push(JSON.parse(init!.body as string))
+      return { ok: true, status: 200, json: async () => ({}) } as Response
+    })
+    await addTracksToPlaylist(['spotify:track:a', 'spotify:track:b'], 'pl1')
+    expect(postBodies).toEqual([{ uris: ['spotify:track:a', 'spotify:track:b'] }])
+  })
+
+  it('chunks more than 100 URIs into multiple requests', async () => {
+    const uris = Array.from({ length: 150 }, (_, i) => `spotify:track:${i}`)
+    const postBodies: unknown[] = []
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      postBodies.push(JSON.parse(init!.body as string))
+      return { ok: true, status: 200, json: async () => ({}) } as Response
+    })
+    await addTracksToPlaylist(uris, 'pl1')
+    expect(postBodies).toHaveLength(2)
+    expect((postBodies[0] as { uris: string[] }).uris).toHaveLength(100)
+    expect((postBodies[1] as { uris: string[] }).uris).toHaveLength(50)
   })
 })
