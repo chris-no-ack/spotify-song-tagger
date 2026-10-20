@@ -138,6 +138,8 @@ export default function App() {
 
   const activeSongs = liveEditMode ? liveEditSongs : songs
 
+  // Keep the selected song listed even if it no longer matches the missing filter
+  const selectedUri = selectedSong?.spotifyUri
   const filteredSongs = useMemo(() => {
     const q = search.trim().toLowerCase()
     const searched = q
@@ -148,12 +150,12 @@ export default function App() {
         )
       : activeSongs
     return searched
-      .filter(s => s.missingCategories.length >= minMissing)
+      .filter(s => s.missingCategories.length >= minMissing || s.spotifyUri === selectedUri)
       .toSorted((a, b) => {
         if (sort === 'missing') return b.missingCategories.length - a.missingCategories.length
         return (b.discoveredDate ?? '').localeCompare(a.discoveredDate ?? '')
       })
-  }, [activeSongs, search, minMissing, sort])
+  }, [activeSongs, search, minMissing, sort, selectedUri])
 
   const nextSong = useMemo(() => {
     if (!selectedSong) return null
