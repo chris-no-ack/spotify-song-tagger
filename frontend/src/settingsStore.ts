@@ -8,6 +8,7 @@ export interface AppConfig {
   anthropicApiKey: string
   anthropicProxyUrl: string
   categoryNames: string[]
+  lastSongIdExportAt?: string
 }
 
 const STORAGE_KEY = 'app_config'
@@ -21,6 +22,7 @@ const DEFAULTS: AppConfig = {
   shazamPlaylistId: '',
   anthropicApiKey: '',
   anthropicProxyUrl: '',
+  lastSongIdExportAt: '',
   categoryNames: [
     'Energy', 'Mood', 'Beat', 'Genre', 'Instrument',
     'Language', 'Attribute', 'Complexity', 'Singer', 'Popularity', 'Year',

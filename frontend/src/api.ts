@@ -11,6 +11,17 @@ export type { IgnoreList }
 import { getSuggestions } from './anthropicApi'
 
 export const api = {
+  getLastSongIdExportAt: (): string => getConfig().lastSongIdExportAt ?? '',
+
+  exportSongIds: async (since: Date, minTags = 3): Promise<string[]> => {
+    const songs = await querySongs()
+    const ids = songs
+      .filter(s => s.tags.length >= minTags && s.discoveredDate && new Date(s.discoveredDate) > since)
+      .map(s => s.spotifyUri.split(':').pop()!)
+    saveConfig({ lastSongIdExportAt: new Date().toISOString() })
+    return ids
+  },
+
   getSongs: (missingCategory?: string): Promise<SongResponse[]> =>
     querySongs(missingCategory),
 

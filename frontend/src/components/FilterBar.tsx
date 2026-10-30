@@ -16,12 +16,13 @@ interface Props {
   onSyncDone: () => void
   onOpenSettings: () => void
   onOpenExport: () => void
+  onOpenSongIdExport: () => void
   liveEditPlaylistName: string | null
   onOpenLiveEditDialog: () => void
   onExitLiveEdit: () => void
 }
 
-export default function FilterBar({ categories, missingFilter, onMissingFilterChange, minMissing, onMinMissingChange, sort, onSortChange, spotifyStatus, onLogout, onSyncDone, onOpenSettings, onOpenExport, liveEditPlaylistName, onOpenLiveEditDialog, onExitLiveEdit }: Props) {
+export default function FilterBar({ categories, missingFilter, onMissingFilterChange, minMissing, onMinMissingChange, sort, onSortChange, spotifyStatus, onLogout, onSyncDone, onOpenSettings, onOpenExport, onOpenSongIdExport, liveEditPlaylistName, onOpenLiveEditDialog, onExitLiveEdit }: Props) {
   const [progress, setProgress] = useState<SyncProgress | null>(null)
 
   const handleSync = async () => {
@@ -98,6 +99,13 @@ export default function FilterBar({ categories, missingFilter, onMissingFilterCh
           >
             ⚡ {liveEditPlaylistName ?? 'Live Edit Playlist'}
           </button>
+          <button
+              onClick={onOpenSongIdExport}
+              className="text-xs bg-neutral-600 hover:bg-neutral-500 text-neutral-200 px-2 py-1 rounded transition-colors"
+              title="Export IDs of newly tagged songs"
+            >
+              ↓ Song IDs
+            </button>
           <button
               onClick={onOpenExport}
               className="text-xs bg-neutral-600 hover:bg-neutral-500 text-neutral-200 px-2 py-1 rounded transition-colors"

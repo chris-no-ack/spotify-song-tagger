@@ -7,6 +7,7 @@ import TagPanel from './components/TagPanel'
 import PlayerBar from './components/PlayerBar'
 import SettingsScreen from './components/SettingsScreen'
 import PlaylistExportDialog from './components/PlaylistExportDialog'
+import SongIdExportDialog from './components/SongIdExportDialog'
 import LiveEditPlaylistDialog from './components/LiveEditPlaylistDialog'
 import DuplicatesDialog from './components/DuplicatesDialog'
 import IgnoredSongsDialog from './components/IgnoredSongsDialog'
@@ -27,6 +28,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [showSongIdExport, setShowSongIdExport] = useState(false)
   const [showLiveEditDialog, setShowLiveEditDialog] = useState(false)
   const [liveEditDialogKey, setLiveEditDialogKey] = useState(0)
   const [showDuplicates, setShowDuplicates] = useState(false)
@@ -225,6 +227,9 @@ export default function App() {
           setSpotifyStatus(status)
         }} />
       )}
+      {showSongIdExport && (
+        <SongIdExportDialog onClose={() => setShowSongIdExport(false)} />
+      )}
       {showExport && (
         <PlaylistExportDialog onClose={() => setShowExport(false)} />
       )}
@@ -277,6 +282,7 @@ export default function App() {
         }}
         onOpenSettings={() => setShowSettings(true)}
         onOpenExport={() => setShowExport(true)}
+        onOpenSongIdExport={() => setShowSongIdExport(true)}
         liveEditPlaylistName={liveEditPlaylistName}
         onOpenLiveEditDialog={() => { setLiveEditDialogKey(k => k + 1); setShowLiveEditDialog(true) }}
         onExitLiveEdit={handleExitLiveEdit}
